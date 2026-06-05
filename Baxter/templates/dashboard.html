@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baxter — The Club Ledger & Secretariat</title>
+    <!-- FontAwesome for classic icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Local Stylesheet -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <!-- Main Mahogany Wood App Frame -->
+    <div id="app-container">
+        
+        <!-- Ornate Brass Nameplate Header -->
+        <header style="align-items: center; gap: 20px;">
+            <div class="brass-plate">
+                <h1>Baxter</h1>
+            </div>
+
+            <div style="flex: 1; max-width: 600px;">
+                <form id="bewerbung-form" onsubmit="return false;" style="display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.2); padding: 5px 10px; border-radius: 5px; border: 1px solid rgba(197, 160, 89, 0.3);">
+                    <i class="fa-solid fa-briefcase" style="color: var(--color-gold-faded);"></i>
+                    <input type="url" id="bewerbung-url" placeholder="Bewerbung aus Inserat (URL)..." required style="flex: 1; background: transparent; border: none; color: #fff; outline: none; font-family: var(--font-body); font-size: 13px;">
+                    <button type="submit" id="btn-bewerbung" style="background: var(--color-gold-dark); border: none; padding: 4px 10px; border-radius: 3px; cursor: pointer; color: #000; font-family: var(--font-header); text-transform: uppercase; font-size: 11px; font-weight: bold;">Prepare Draft</button>
+                </form>
+            </div>
+
+            <div class="header-meta">
+                <div class="header-clock" id="header-time">12:00 PM</div>
+                <div class="header-member">
+                    <span id="header-date">27 May 2026</span>
+                    <div class="member-avatar">W</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="app-body">
+            <!-- Sidebar Navigation - Leather Padded -->
+            <aside>
+                <div class="nav-group">
+                    <button class="nav-btn active" data-target="view-morning-room">
+                        <i class="fa-solid fa-newspaper"></i> The Morning Room
+                    </button>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <span style="font-family: var(--font-header); font-size: 11px; color: var(--color-gold-dark); text-transform: uppercase; margin-bottom: 10px; display: block; padding-left: 5px;">Secretariat Actions</span>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <button class="nav-btn" data-job="/api/open-folder/base" style="justify-content: flex-start; width: 100%; border-color: rgba(197, 160, 89, 0.4);"><i class="fa-solid fa-folder-open"></i> Open Baxter Folder</button>
+                        <a href="/tools/images-to-pdf" target="_blank" class="nav-btn" style="justify-content: flex-start; width: 100%; border-color: rgba(197, 160, 89, 0.4); text-decoration: none;"><i class="fa-solid fa-images"></i> Images to PDF</a>
+                        <a href="/tools/video-to-audio" target="_blank" class="nav-btn" style="justify-content: flex-start; width: 100%; border-color: rgba(197, 160, 89, 0.4); text-decoration: none;"><i class="fa-solid fa-music"></i> Video to MP3</a>
+                        <a href="/tools/sign-pdf" target="_blank" class="nav-btn" style="justify-content: flex-start; width: 100%; border-color: rgba(197, 160, 89, 0.4); text-decoration: none;"><i class="fa-solid fa-signature"></i> Sign PDF</a>
+                    </div>
+                </div>
+                
+                <div style="margin-top: auto; margin-bottom: 20px; padding: 15px 0; border-top: 1px solid rgba(197, 160, 89, 0.2);">
+                    <div class="quote-text" id="quote-display" style="font-size: 14px; color: #b3cbb8; margin-bottom: 10px; font-style: italic; padding-left: 0;">
+                        "It is a good rule in life never to apologize. The right sort of people do not want apologies, and the wrong sort take a mean advantage of them."
+                    </div>
+                    <div class="quote-author" id="quote-author" style="font-family: var(--font-header); font-size: 11px; text-align: right; color: var(--color-gold-dark); text-transform: uppercase;">
+                        — P. G. Wodehouse
+                    </div>
+                </div>
+
+                <div class="sidebar-footer">
+                    <span class="brand-sig">Baxter v{{ version }}</span>
+                </div>
+            </aside>
+
+            <!-- Main Desk Area (Green Leather Insert) -->
+            <main>
+                <div class="desk-insert">
+
+                    <!-- VIEW 1: THE MORNING ROOM -->
+                    <div id="view-morning-room" class="parchment-page">
+                        
+                        <div class="dashboard-grid">
+                            <!-- Recent Applications -->
+                            {% if applications %}
+                            <div id="recent-applications-widget" class="desk-widget" style="margin-bottom: 10px; flex-shrink: 0;">
+                                <span class="widget-title">Recent Applications</span>
+                                <div id="bewerbung-list" style="margin-top: 15px; display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;">
+                                    {% for app in applications %}
+                                    <div class="application-card" data-application-id="{{ app.id }}" style="background: rgba(0,0,0,0.03); padding: 10px; border-radius: 5px; border-left: 3px solid var(--color-gold); font-size: 0.9em; min-width: 250px;">
+                                        <div style="font-weight: bold; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ app.school_name }}">{{ app.school_name or "Unknown School" }}</div>
+                                        <div style="color: var(--color-ink-faded); margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ app.job_title }}">{{ app.job_title }}</div>
+                                        <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                                            <a href="{{ app.source_url }}" target="_blank" class="btn-brass" style="padding: 2px 5px; font-size: 0.8em; text-decoration: none;" title="Otevřít inzerát"><i class="fa-solid fa-link"></i> Inzerát</a>
+                                            {% if app.pdf_url %}
+                                            <a href="{{ app.pdf_url }}" target="_blank" class="btn-brass" style="padding: 2px 5px; font-size: 0.8em; text-decoration: none;" title="Otevřít vytvořené finální PDF"><i class="fa-solid fa-file-pdf"></i> PDF</a>
+                                            {% endif %}
+                                            {% if app.compose_url %}
+                                            <a href="{{ app.compose_url }}" target="_blank" class="btn-brass" style="padding: 2px 5px; font-size: 0.8em; text-decoration: none;" title="Vytvořit koncept v Gmailu"><i class="fa-solid fa-envelope"></i> Koncept</a>
+                                            {% endif %}
+                                            <button type="button" class="btn-brass" data-discard-application="{{ app.id }}" style="padding: 2px 6px; font-size: 0.8em;" title="Zahodit z přehledu" aria-label="Zahodit z přehledu"><i class="fa-solid fa-trash-can"></i></button>
+                                        </div>
+                                        {% if app.status != 'done' %}
+                                        <div style="color: var(--color-wax-red); font-size: 0.8em; margin-top: 5px;"><i class="fa-solid fa-triangle-exclamation"></i> {{ app.message }}</div>
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Detailed Inbox Triage -->
+                            <div class="newspaper-section">
+                                {% set triage_counts = inbox_triage.counts|default({}) %}
+                                <div class="newspaper-title">Inbox Triage</div>
+                                <div class="newspaper-meta">
+                                    <span>{{ inbox_triage.source or "gmail-attention-brief" }}</span>
+                                    <span>{{ inbox_triage.generated_at or "No run yet" }}</span>
+                                </div>
+
+                                <div class="triage-summary-card">
+                                    <div>
+                                        <div class="triage-summary-label">Secretary's summary</div>
+                                        <p>{{ inbox_triage.summary }}</p>
+                                    </div>
+                                    <div class="triage-counts">
+                                        <div><strong>{{ triage_counts.attention_needed|default(0) }}</strong><span>Attention</span></div>
+                                        <div><strong>{{ triage_counts.drafts_created|default(0) }}</strong><span>Drafts</span></div>
+                                        <div><strong>{{ triage_counts.low_priority_actions|default(0) }}</strong><span>Filed</span></div>
+                                        <div><strong>{{ triage_counts.uncertain_items|default(0) }}</strong><span>Uncertain</span></div>
+                                    </div>
+                                </div>
+
+                                <div class="newspaper-body">
+                                    {% for bucket in inbox_triage.buckets %}
+                                    <div class="triage-ledger triage-ledger-{{ bucket.key }}">
+                                        <div class="triage-ledger-header">
+                                            <h3>{{ bucket.title }}</h3>
+                                            <span>{{ bucket['items']|length }} items</span>
+                                        </div>
+                                        {% if bucket['items'] %}
+                                            <ul class="triage-ledger-list">
+                                            {% for item in bucket['items'] %}
+                                                <li>
+                                                    <div class="triage-item-title">
+                                                        {% if item.url %}
+                                                        <a href="{{ item.url }}" target="_blank"><i class="fa-solid fa-envelope-open-text"></i> {{ item.title }}</a>
+                                                        {% else %}
+                                                        <span><i class="fa-solid fa-envelope"></i> {{ item.title }}</span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="triage-item-meta">
+                                                        From <strong>{{ item.sender }}</strong>{% if item.date %} · {{ item.date }}{% endif %}
+                                                        {% if item.bucket %}<span class="triage-chip">{{ item.bucket }}</span>{% endif %}
+                                                    </div>
+                                                    {% if item.action and item.action != item.note %}
+                                                    <div class="triage-item-action"><strong>Action:</strong> {{ item.action }}</div>
+                                                    {% endif %}
+                                                    <div class="triage-item-note">{{ item.note }}</div>
+                                                    {% if item.audit %}
+                                                    <div class="triage-item-audit"><i class="fa-solid fa-stamp"></i> {{ item.audit }}</div>
+                                                    {% endif %}
+                                                </li>
+                                            {% endfor %}
+                                            </ul>
+                                        {% else %}
+                                            <p class="triage-empty">No items in this category.</p>
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                                <!-- (Right column removed as requested) -->
+                        </div>
+                    </div>
+
+                    <!-- VIEW 2: THE LIBRARY LEDGER -->
+                    <div id="view-library-ledger" class="parchment-page" style="display: none;">
+                        <div class="page-title">
+                            <span>The Library Ledger</span>
+                            <span class="page-subtitle">Register of Outstanding Signatures & Affairs</span>
+                        </div>
+
+                        <!-- Add Task Form -->
+                        <form id="ledger-form" class="ledger-actions" onsubmit="return false;">
+                            <input type="text" id="task-name" class="ledger-input" placeholder="Enter a new affair or duty..." required>
+                            
+                            <select id="task-category" class="ledger-select">
+                                <option value="social-calls">Social Call</option>
+                                <option value="urgent-affairs">Urgent Affair</option>
+                                <option value="leisure-sport">Leisure & Sport</option>
+                            </select>
+
+                            <select id="task-priority" class="ledger-select">
+                                <option value="high">High priority</option>
+                                <option value="medium" selected>Medium priority</option>
+                                <option value="low">Low priority</option>
+                            </select>
+
+                            <button type="submit" class="btn-brass" id="btn-add-task">
+                                <i class="fa-solid fa-feather"></i> Record Affair
+                            </button>
+                        </form>
+
+                        <!-- Ledger Sheet -->
+                        <div class="ledger-container">
+                            <table class="ledger-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px; text-align: center;">Done</th>
+                                        <th>Matter (Affair)</th>
+                                        <th style="width: 180px;">Class</th>
+                                        <th style="width: 130px;">Urgency</th>
+                                        <th style="width: 80px; text-align: center;">Resolve</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ledger-tbody">
+                                    {% if manual_jobs %}
+                                        {% for job_id, job in manual_jobs.items() %}
+                                        <tr class="task-row">
+                                            <td style="text-align: center;"><i class="fa-solid fa-file-signature" style="color: var(--color-ink-faded);"></i></td>
+                                            <td><a href="/manual-sign/{{ job_id }}" style="color: var(--color-ink); text-decoration: none; font-weight: bold;">{{ job.source_pdf.name }} (Awaiting Signature)</a></td>
+                                            <td><span class="tag-badge tag-urgent-affairs">Urgent Affair</span></td>
+                                            <td><span class="priority-cell priority-high">High</span></td>
+                                            <td style="text-align: center;"><a href="/manual-sign/{{ job_id }}" class="btn-remove"><i class="fa-solid fa-pen-nib"></i></a></td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% endif %}
+                                    <tr id="ledger-empty-row" style="display: none;">
+                                        <td colspan="5" style="text-align: center; color: var(--color-ink-faded); padding: 30px; font-style: italic;">
+                                            No outstanding affairs recorded. You are fully at leisure, sir.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- VIEW 3: THE CELLAR BOOK -->
+                    <div id="view-cellar-book" class="parchment-page" style="display: none;">
+                        <div class="page-title">
+                            <span>The Cellar Book</span>
+                            <span class="page-subtitle">Stocks, Cigars & Port Log</span>
+                        </div>
+
+                        <!-- Add Cellar Item Form -->
+                        <form id="cellar-form" class="cellar-actions" onsubmit="return false;">
+                            <input type="text" id="item-name" class="ledger-input" placeholder="Item Name (e.g., Dow's Vintage Port)..." required style="flex: 2;">
+                            <input type="number" id="item-qty" class="ledger-input" placeholder="Qty" min="1" max="999" required style="width: 80px;">
+                            
+                            <select id="item-category" class="ledger-select">
+                                <option value="wine-spirit">Wine & Spirits</option>
+                                <option value="cigar-tobacco">Cigars & Tobacco</option>
+                                <option value="library-book">Library Books</option>
+                                <option value="other-property">Other Property</option>
+                            </select>
+
+                            <input type="text" id="item-year" class="ledger-input" placeholder="Year" style="width: 90px;">
+
+                            <button type="submit" class="btn-brass" id="btn-add-cellar">
+                                <i class="fa-solid fa-plus"></i> Log Item
+                            </button>
+                        </form>
+
+                        <!-- Cellar Catalog Grid -->
+                        <div class="cellar-grid" id="cellar-grid-container">
+                            <!-- Dynamic Cards loaded by JS -->
+                        </div>
+                    </div>
+
+                    <!-- VIEW 4: THE TELEGRAM OFFICE -->
+                    <div id="view-telegram-office" class="parchment-page" style="display: none;">
+                        <div class="page-title">
+                            <span>The Telegram Office</span>
+                            <span class="page-subtitle">Post Office Telegraphy</span>
+                        </div>
+
+                        <div class="telegram-frame">
+                            <div class="telegram-header">
+                                <div class="telegram-org">Post Office Telegraphs</div>
+                                <div class="telegram-sub">London District • Hand Delivery</div>
+                            </div>
+
+                            <div class="telegram-meta-fields">
+                                <div class="telegram-field">
+                                    <span>Code No.</span>
+                                    <div id="tel-code">BX-9942</div>
+                                </div>
+                                <div class="telegram-field">
+                                    <span>Words</span>
+                                    <div id="tel-word-count">0 words</div>
+                                </div>
+                                <div class="telegram-field">
+                                    <span>Sent At</span>
+                                    <div id="tel-time">--:--</div>
+                                </div>
+                                <div class="telegram-field">
+                                    <span>Date</span>
+                                    <div id="tel-date">27 May 2026</div>
+                                </div>
+                            </div>
+
+                            <textarea id="telegram-input" class="telegram-textarea" placeholder="WRITE YOUR DISPATCH HERE... STOP. PRESERVE ELEGANCE... STOP."></textarea>
+
+                            <div class="telegram-footer">
+                                <div class="telegram-stamp">
+                                    Blandings<br>Club<br>Official
+                                </div>
+                                <div style="display: flex; gap: 15px;">
+                                    <button class="btn-brass" id="btn-clear-telegram">
+                                        <i class="fa-solid fa-trash-can"></i> Scrape
+                                    </button>
+                                    <button class="btn-brass" id="btn-copy-telegram">
+                                        <i class="fa-solid fa-copy"></i> Copy Text
+                                    </button>
+                                    <button class="btn-brass" id="btn-download-telegram">
+                                        <i class="fa-solid fa-paper-plane"></i> Dispatch File
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+
+        <!-- Butler Summoning Mechanism (Bell & Speech Bubble) -->
+        <div id="butler-desk">
+            <div class="butler-bubble" id="butler-speech-bubble">
+                <div style="display: flex; gap: 15px; align-items: flex-start;">
+                    <img src="/static/butler_portrait.png" alt="Baxter" style="width: 55px; height: 55px; border-radius: 50%; border: 2px solid var(--color-gold); object-fit: cover; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
+                    <div>
+                        <div class="butler-name">Baxter (The Butler)</div>
+                        <div class="butler-speech" id="butler-speech-text">
+                            "Good day, sir. I am at your disposal. Ring this bell should you require some refined wisdom or secretary assistance."
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="butler-bell-btn" id="butler-bell-trigger" title="Ring for the Butler">
+                <i class="fa-solid fa-bell"></i>
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Web Audio & Logic Script -->
+    <script type="module" src="/static/app.js?v=ledger-done-20260605"></script>
+</body>
+</html>

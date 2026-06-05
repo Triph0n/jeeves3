@@ -1,0 +1,6 @@
+{{ salutation }}
+
+Ihr Inserat betreffend die Stelle als {{ job_title }} an der {{ school_name }} hat mich sehr angesprochen. Ich bin überzeugt Ihre Erwartungen bestens zu erfüllen. Hier schicke ich meine Bewerbungsunterlagen.
+
+Freundliche Grüsse
+Vladimir Fortin

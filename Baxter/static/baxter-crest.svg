@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Baxter crest">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#fff8e8"/>
+      <stop offset="0.52" stop-color="#d8bd7a"/>
+      <stop offset="1" stop-color="#9b7334"/>
+    </linearGradient>
+  </defs>
+  <circle cx="48" cy="48" r="44" fill="#183c34"/>
+  <circle cx="48" cy="48" r="38" fill="none" stroke="url(#g)" stroke-width="3"/>
+  <path d="M25 21h46l-4 33c-2 15-11 24-19 29-8-5-17-14-19-29L25 21Z" fill="#fff8e8" stroke="#b08a47" stroke-width="3"/>
+  <path d="M33 29h30v11c0 6-5 11-11 11H33V29Z" fill="#6b2428"/>
+  <path d="M33 51h33v7c0 7-6 13-13 13H33V51Z" fill="#243f5f"/>
+  <path d="M43 37h9c2 0 4 2 4 4s-2 4-4 4h-9v-8Zm0 20h12c2 0 4 2 4 4s-2 4-4 4H43v-8Z" fill="#fff8e8"/>
+  <path d="M28 20h40v8H28z" fill="url(#g)"/>
+</svg>

@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="980" viewBox="0 0 1400 980">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1020"/>
+      <stop offset="1" stop-color="#151027"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#67e8f9"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff7ad"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e5f3ff"/>
+      <stop offset="1" stop-color="#7dd3fc"/>
+    </linearGradient>
+    <linearGradient id="rose" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fb7185"/>
+      <stop offset="1" stop-color="#a78bfa"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#000" flood-opacity="0.38"/>
+    </filter>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style>
+      .page { fill: #080b13; }
+      .title { font-family: Segoe UI, Arial, sans-serif; font-size: 42px; font-weight: 750; fill: #f8fafc; letter-spacing: 0; }
+      .sub { font-family: Segoe UI, Arial, sans-serif; font-size: 20px; fill: #94a3b8; letter-spacing: 0; }
+      .label { font-family: Segoe UI, Arial, sans-serif; font-size: 22px; font-weight: 700; fill: #e2e8f0; letter-spacing: 0; }
+      .caption { font-family: Segoe UI, Arial, sans-serif; font-size: 15px; fill: #94a3b8; letter-spacing: 0; }
+      .tile { fill: #101522; stroke: #283248; stroke-width: 2; }
+      .iconbox { fill: url(#bg); stroke: rgba(255,255,255,.72); stroke-width: 6; }
+      .j { font-family: Segoe UI, Arial, sans-serif; font-weight: 900; font-size: 190px; text-anchor: middle; dominant-baseline: central; letter-spacing: 0; }
+    </style>
+  </defs>
+  <rect class="page" width="1400" height="980"/>
+  <text x="70" y="72" class="title">Jeeves 3 - návrhy ikony s velkým J</text>
+  <text x="70" y="108" class="sub">Zatím jen směry. Nic jsem nepřepisoval na ploše.</text>
+
+  <g transform="translate(70 155)">
+    <rect class="tile" width="380" height="360" rx="28"/>
+    <g transform="translate(85 38)" filter="url(#shadow)">
+      <rect class="iconbox" width="210" height="210" rx="48"/>
+      <text class="j" x="105" y="112" fill="url(#cyan)">J</text>
+      <circle cx="148" cy="59" r="8" fill="#67e8f9" filter="url(#glow)"/>
+      <circle cx="66" cy="154" r="8" fill="#8b5cf6" filter="url(#glow)"/>
+      <path d="M70 152 C108 105 124 89 150 60" fill="none" stroke="#67e8f9" stroke-width="6" stroke-linecap="round" opacity=".72"/>
+    </g>
+    <text x="30" y="300" class="label">1. Orbitální J</text>
+    <text x="30" y="330" class="caption">AI/agent vibe, pořád čitelné v malém.</text>
+  </g>
+
+  <g transform="translate(510 155)">
+    <rect class="tile" width="380" height="360" rx="28"/>
+    <g transform="translate(85 38)" filter="url(#shadow)">
+      <rect class="iconbox" width="210" height="210" rx="48" fill="#0a0f1a"/>
+      <path d="M58 58 H152" stroke="#f8fafc" stroke-width="15" stroke-linecap="round"/>
+      <text class="j" x="105" y="116" fill="url(#steel)">J</text>
+      <path d="M78 154 C88 172 120 176 135 154" fill="none" stroke="#67e8f9" stroke-width="8" stroke-linecap="round"/>
+    </g>
+    <text x="30" y="300" class="label">2. Butler monogram</text>
+    <text x="30" y="330" class="caption">Elegantní, víc Jeeves než sci-fi.</text>
+  </g>
+
+  <g transform="translate(950 155)">
+    <rect class="tile" width="380" height="360" rx="28"/>
+    <g transform="translate(85 38)" filter="url(#shadow)">
+      <rect class="iconbox" width="210" height="210" rx="48"/>
+      <path d="M54 63 C85 34 139 32 164 67" fill="none" stroke="url(#gold)" stroke-width="12" stroke-linecap="round"/>
+      <text class="j" x="105" y="116" fill="#f8fafc">J</text>
+      <circle cx="83" cy="78" r="7" fill="#fbbf24"/>
+      <circle cx="145" cy="78" r="7" fill="#fbbf24"/>
+    </g>
+    <text x="30" y="300" class="label">3. Zlatý asistent</text>
+    <text x="30" y="330" class="caption">Luxusnější, trochu osobní komorník.</text>
+  </g>
+
+  <g transform="translate(70 560)">
+    <rect class="tile" width="380" height="360" rx="28"/>
+    <g transform="translate(85 38)" filter="url(#shadow)">
+      <rect class="iconbox" width="210" height="210" rx="48" fill="#06131d"/>
+      <text class="j" x="105" y="116" fill="#020617" stroke="#67e8f9" stroke-width="7">J</text>
+      <path d="M142 54 L162 70 L142 86" fill="none" stroke="#a78bfa" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M66 158 L50 142 L66 126" fill="none" stroke="#67e8f9" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text x="30" y="300" class="label">4. Terminálové J</text>
+    <text x="30" y="330" class="caption">Technické, silné, dobře funguje pro appku.</text>
+  </g>
+
+  <g transform="translate(510 560)">
+    <rect class="tile" width="380" height="360" rx="28"/>
+    <g transform="translate(85 38)" filter="url(#shadow)">
+      <rect class="iconbox" width="210" height="210" rx="48" fill="#0c0a18"/>
+      <text class="j" x="105" y="114" fill="url(#rose)">J</text>
+      <path d="M62 63 C97 38 130 39 158 66" fill="none" stroke="#f8fafc" stroke-width="7" stroke-linecap="round" opacity=".88"/>
+      <path d="M66 71 C98 50 127 50 153 73" fill="none" stroke="#fb7185" stroke-width="4" stroke-linecap="round" opacity=".9"/>
+    </g>
+    <text x="30" y="300" class="label">5. Živý hlas</text>
+    <text x="30" y="330" class="caption">Mluvící agent, jemnější a moderní.</text>
+  </g>
+
+  <g transform="translate(950 560)">
+    <rect class="tile" width="380" height="360" rx="28"/>
+    <g transform="translate(85 38)" filter="url(#shadow)">
+      <rect class="iconbox" width="210" height="210" rx="48" fill="#08111f"/>
+      <text class="j" x="105" y="116" fill="#f8fafc">J</text>
+      <path d="M58 150 C92 180 139 178 160 142" fill="none" stroke="url(#cyan)" stroke-width="12" stroke-linecap="round"/>
+      <path d="M70 54 H145" stroke="#67e8f9" stroke-width="8" stroke-linecap="round" opacity=".9"/>
+      <path d="M145 54 L158 67" stroke="#67e8f9" stroke-width="8" stroke-linecap="round" opacity=".9"/>
+    </g>
+    <text x="30" y="300" class="label">6. Rychlý Jeeves</text>
+    <text x="30" y="330" class="caption">Akční, spouštěcí ikona s energií.</text>
+  </g>
+</svg>

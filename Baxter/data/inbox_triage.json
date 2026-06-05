@@ -1,0 +1,143 @@
+{
+  "generated_at": "2026-06-04T23:59:39.061Z",
+  "summary": "Codex: Denni gmail brief pro Baxtera: Od posledni kontroly vystoupily 2 urgentni akce, 1 existujici draft k odeslani, 2 planovane follow-upy a vice newsletteru vhodnych k archivaci.",
+  "source": "gmail-attention-brief",
+  "counts": {
+    "scanned": 0,
+    "attention_needed": 3,
+    "drafts_created": 1,
+    "low_priority_actions": 2,
+    "uncertain_items": 1
+  },
+  "buckets": [
+    {
+      "key": "urgent",
+      "title": "Needs Attention",
+      "items": [
+        {
+          "title": "AW: Zeugnisse",
+          "sender": "Sekretariat FSZ <sekretariat@fsz.ch>",
+          "date": "2026-06-04",
+          "note": "Odeslat existujici draft s potvrzenim terminu a co nejdrive poslat dve vysvedceni v samostatnem e-mailu.",
+          "url": "https://mail.google.com/mail/#all/19e8d7e956f4e1a9",
+          "action": "Odeslat existujici draft s potvrzenim terminu a co nejdrive poslat dve vysvedceni v samostatnem e-mailu.",
+          "summary": "Skola uz nechala jen termin v utery 16. cervna 2026 v 15:00 a stale ceka na posledni dve vysvedceni Aviho.",
+          "bucket": "urgent",
+          "audit": ""
+        },
+        {
+          "title": "Rechnung Nr. 01573-2026021379",
+          "sender": "Rolf Nyfeler <noreply@praxsys.ch>",
+          "date": "2026-06-04",
+          "note": "Zaridit platbu a poslat refundacni list zdravotni pojistovne, pokud se ma naklad proplacet.",
+          "url": "https://mail.google.com/mail/#all/19e8d9ee455138a7",
+          "action": "Zaridit platbu a poslat refundacni list zdravotni pojistovne, pokud se ma naklad proplacet.",
+          "summary": "Prisla faktura Lernpraxis AG za obdobi 4. 5. 2026 az 29. 5. 2026 na CHF 1070.70 se splatnosti do 30 dnu od 3. 6. 2026.",
+          "bucket": "urgent",
+          "audit": ""
+        },
+        {
+          "title": "SportMember.ch - [Abstimmen] Kuchen fur den Schnellsten Glatttaler am 10.06.",
+          "sender": "Nathalie Affolter <no_reply@sportmember.ch>",
+          "date": "2026-06-04",
+          "note": "Rozhodnout, zda se zapojit, a pokud ano, odhlasovat to a napsat pres SportMember jaky kolac bude dodan.",
+          "url": "https://mail.google.com/mail/#all/19e8babdc658a20e",
+          "action": "Rozhodnout, zda se zapojit, a pokud ano, odhlasovat to a napsat pres SportMember jaky kolac bude dodan.",
+          "summary": "Dve hlasovaci zpravy zadosti o potvrzeni kolace pro akci 10. 6. 2026; hlasovani chce odpoved nejpozdeji do soboty 6. 6. 2026.",
+          "bucket": "soon",
+          "audit": ""
+        }
+      ]
+    },
+    {
+      "key": "needs_reply",
+      "title": "Drafts Ready",
+      "items": [
+        {
+          "title": "Re: AW: Zeugnisse",
+          "sender": "vladimir fortin <vladimir.fortin@gmail.com>",
+          "date": "2026-06-04",
+          "note": "Zkontrolovat text, odeslat draft a navazat samostatnym e-mailem s prilohami vysvedceni.",
+          "url": "https://mail.google.com/mail/#all/19e8e55932bbcc1d",
+          "action": "Zkontrolovat text, odeslat draft a navazat samostatnym e-mailem s prilohami vysvedceni.",
+          "summary": "V Gmailu uz existuje neodeslany draft, ktery potvrzuje termin 16. 6. 2026 v 15:00 a slibuje poslat dve vysvedceni separatne.",
+          "bucket": "draft",
+          "audit": ""
+        }
+      ]
+    },
+    {
+      "key": "follow_up",
+      "title": "Next Follow-ups",
+      "items": [
+        {
+          "title": "Re: Bewerbung Cello-Lehrer",
+          "sender": "info@ms-zurzach.ch",
+          "date": "2026-06-04",
+          "note": "Pokud se nikdo neozve behem 1-2 tydnu, poslat slusny follow-up.",
+          "url": "https://mail.google.com/mail/#all/19e8d7c6cd42103d",
+          "action": "Pokud se nikdo neozve behem 1-2 tydnu, poslat slusny follow-up.",
+          "summary": "Skola potvrzuje prijeti zadosti a pise, ze kvuli velkemu poctu kandidatu bude proces delsi; odpovi pozdeji.",
+          "bucket": "waiting",
+          "audit": ""
+        },
+        {
+          "title": "AW: Zeugnisse",
+          "sender": "Sekretariat FSZ <sekretariat@fsz.ch>",
+          "date": "2026-06-04",
+          "note": "Dodat vysvedceni co nejdrive a idealne potvrdit, ze je skola obdrzela.",
+          "url": "https://mail.google.com/mail/#all/19e8d7e956f4e1a9",
+          "action": "Dodat vysvedceni co nejdrive a idealne potvrdit, ze je skola obdrzela.",
+          "summary": "Po odeslani draftu zustane jako follow-up dodat dve vysvedceni pred terminem 16. 6. 2026.",
+          "bucket": "follow-up",
+          "audit": ""
+        }
+      ]
+    },
+    {
+      "key": "waiting",
+      "title": "Follow-ups / Uncertain",
+      "items": [
+        {
+          "title": "Stv",
+          "sender": "Treichler Jacqueline <Jacqueline.Treichler@ilef.ch>",
+          "date": "2026-06-04",
+          "note": "Zkontrolovat castku a pripadne nahlasit zmeny, pokud neco nesedi.",
+          "url": "https://mail.google.com/mail/#all/19e8d8eb18f079ab",
+          "action": "Zkontrolovat castku a pripadne nahlasit zmeny, pokud neco nesedi.",
+          "summary": "Priloha je mzdove vyuctovani zastupu za 13. 4. a 11. 5. 2026 s castkou CHF 1401.15 brutto za cerven; z e-mailu neni jasne, zda je potreba aktivni potvrzeni nebo jen kontrola udaju.",
+          "bucket": "uncertain",
+          "audit": ""
+        }
+      ]
+    },
+    {
+      "key": "fyi",
+      "title": "Low Priority / Filed",
+      "items": [
+        {
+          "title": "Your online purchase from SBB",
+          "sender": "SBB CFF FFS <sbbclient@order.info.sbb.ch>",
+          "date": "2026-06-04",
+          "note": "Archivovat po pripadne kontrole vydaje.",
+          "url": "https://mail.google.com/mail/#all/19e8bff32ada203e",
+          "action": "Archivovat po pripadne kontrole vydaje.",
+          "summary": "Potvrzeni nakupu jednorazove jizdenky CHF 2.80 z 3. 6. 2026; neni potreba odpovidat.",
+          "bucket": "archive",
+          "audit": ""
+        },
+        {
+          "title": "Aktualisierungen der Nutzungsbedingungen und der Datenschutzrichtlinie von Patreon",
+          "sender": "Patreon <no-reply@mailgun.patreon.com>",
+          "date": "2026-06-04",
+          "note": "Archivovat.",
+          "url": "https://mail.google.com/mail/#all/19e8ce2e057fddb6",
+          "action": "Archivovat.",
+          "summary": "Oznameni o zmenach podminek a ochrany soukromi bez nutne akce.",
+          "bucket": "archive",
+          "audit": ""
+        }
+      ]
+    }
+  ]
+}

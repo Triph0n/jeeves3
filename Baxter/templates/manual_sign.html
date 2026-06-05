@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Signature | Baxter</title>
+    <!-- FontAwesome for classic icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Local Stylesheet -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <!-- Main Mahogany Wood App Frame -->
+    <div id="app-container" class="manual" data-job-id="{{ job_id }}">
+        
+        <!-- Ornate Brass Nameplate Header -->
+        <header>
+            <div class="brass-plate">
+                <h1>Baxter</h1>
+            </div>
+            <div class="header-meta">
+                <div class="header-clock">Manual Signature Protocol</div>
+                <div class="header-member">
+                    <a href="/" class="btn-brass" style="text-decoration: none; padding: 5px 15px;"><i class="fa-solid fa-arrow-left"></i> Back to Club</a>
+                </div>
+            </div>
+        </header>
+
+        <div class="app-body">
+            <!-- Main Desk Area -->
+            <main style="padding: 20px; flex: 1;">
+                <div class="desk-insert" style="display: flex; flex-direction: column; height: 100%;">
+
+                    <div class="parchment-page" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; max-height: calc(100vh - 120px);">
+                        <div class="page-title">
+                            <span>The Signet Plate</span>
+                            <span class="page-subtitle">{% if job %}{{ job.source_pdf.name }}{% else %}Matter Unavailable{% endif %}</span>
+                        </div>
+
+                        {% if not job %}
+                        <div style="padding: 50px; text-align: center; color: var(--color-wax-red); font-style: italic;">
+                            <i class="fa-solid fa-file-circle-xmark fa-3x" style="margin-bottom: 20px;"></i><br>
+                            The signature affair no longer exists or has already been completed, sir.
+                        </div>
+                        {% elif not signature %}
+                        <div style="padding: 50px; text-align: center; color: var(--color-wax-red); font-style: italic;">
+                            <i class="fa-solid fa-file-signature fa-3x" style="margin-bottom: 20px;"></i><br>
+                            The signature plate is missing. Please store your seal at {{ config.signature_path }}.
+                        </div>
+                        {% else %}
+                        
+                        <!-- Manual Signature Layout -->
+                        <div style="display: flex; flex: 1; overflow: hidden; margin-top: 20px; border-top: 2px solid var(--color-gold-faded); padding-top: 20px;">
+                            
+                            <!-- PDF Stage (Left) -->
+                            <div class="pdf-stage" id="pdfStage" style="flex: 1; overflow-y: auto; background-color: rgba(0,0,0,0.05); border: 1px solid var(--color-gold-faded); border-radius: 5px; position: relative; cursor: crosshair;">
+                                <div id="pagesContainer" class="pages-container"></div>
+                            </div>
+                            
+                            <img id="signaturePreview" class="signature-cursor" src="/api/signature" alt="Signature Preview" style="position: absolute; pointer-events: none; display: none; transform: translate(-50%, -50%); opacity: 0.8;">
+
+                            <!-- Tools Sidebar (Right) -->
+                            <aside class="tools" style="width: 250px; padding: 20px; background-color: #f0e6d2; border-left: 2px solid var(--color-gold-faded); display: flex; flex-direction: column; gap: 20px;">
+                                
+                                <div style="text-align: center; font-weight: bold; border-bottom: 1px solid var(--color-gold-faded); padding-bottom: 10px;">
+                                    Navigation
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <button id="prevPage" class="btn-brass" style="padding: 5px 10px;" type="button"><i class="fa-solid fa-chevron-left"></i></button>
+                                    <span id="pageLabel" style="font-family: var(--font-primary); font-weight: bold;">Page</span>
+                                    <button id="nextPage" class="btn-brass" style="padding: 5px 10px;" type="button"><i class="fa-solid fa-chevron-right"></i></button>
+                                </div>
+
+                                <div style="text-align: center; font-weight: bold; border-bottom: 1px solid var(--color-gold-faded); padding-bottom: 10px; margin-top: 20px;">
+                                    Imprint Size
+                                </div>
+                                <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                                    <input id="sizeSlider" type="range" min="20" max="90" value="45" style="width: 100%;">
+                                    <span id="sizeLabel" style="font-family: var(--font-handwriting); font-size: 1.5rem; color: var(--color-ink);">45 mm</span>
+                                </div>
+
+                                <div style="margin-top: auto;">
+                                    <button id="confirmSign" class="btn-brass" style="width: 100%; padding: 15px; font-size: 1.1rem; background: var(--color-wax-red); color: white; border-color: #801a1a;" type="button" disabled>
+                                        <i class="fa-solid fa-stamp"></i> Aim at PDF
+                                    </button>
+                                </div>
+
+                                <div id="manualResult" style="text-align: center; font-style: italic; color: var(--color-wax-red); margin-top: 10px; min-height: 40px;"></div>
+
+                            </aside>
+
+                        </div>
+
+                        {% endif %}
+
+                    </div>
+                </div>
+            </main>
+        </div>
+
+    </div>
+
+    <!-- Web Audio & Logic Script -->
+    <script type="module" src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "name": "Jeeves 3.0",
+  "description": "Real-time multimodal AI assistant using Gemini Live",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

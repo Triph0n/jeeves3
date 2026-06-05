@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sign PDF - Baxter</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-paper: #f4f0e6;
+            --color-ink: #2b2b2b;
+            --color-gold: #c5a059;
+            --color-gold-dark: #8b7355;
+            --font-main: 'Georgia', serif;
+            --font-header: 'Cinzel', serif;
+        }
+        body { 
+            background-color: var(--bg-paper); 
+            color: var(--color-ink); 
+            font-family: var(--font-main); 
+            padding: 40px; 
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 { 
+            font-family: var(--font-header);
+            border-bottom: 2px solid var(--color-gold); 
+            padding-bottom: 10px; 
+            font-weight: normal;
+        }
+        .upload-area {
+            border: 2px dashed var(--color-gold-dark);
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            background: rgba(197, 160, 89, 0.1);
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-bottom: 20px;
+        }
+        .upload-area:hover {
+            background: rgba(197, 160, 89, 0.2);
+        }
+        .upload-area i {
+            font-size: 40px;
+            color: var(--color-gold-dark);
+            margin-bottom: 15px;
+        }
+        input[type="file"] { display: none; }
+        .file-list { 
+            list-style: none; 
+            padding: 0; 
+            margin: 20px 0; 
+        }
+        .file-item { 
+            padding: 12px 15px; 
+            margin-bottom: 8px; 
+            background: #fff; 
+            border: 1px solid var(--color-gold); 
+            border-radius: 4px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .btn-generate { 
+            background: var(--color-ink); 
+            color: var(--bg-paper); 
+            border: none; 
+            padding: 15px 30px; 
+            font-size: 16px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            display: block; 
+            width: 100%; 
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            transition: background 0.2s; 
+        }
+        .btn-generate:hover { background: #111; }
+        .btn-generate:disabled { background: #888; cursor: not-allowed; }
+        #status { margin-top: 20px; font-style: italic; color: var(--color-gold-dark); text-align: center; }
+    </style>
+</head>
+<body>
+    <h1><i class="fa-solid fa-signature"></i> Podepsat PDF dokument</h1>
+    <p>Vyberte PDF soubor, který chcete podepsat.</p>
+    
+    <div class="upload-area" id="uploadArea">
+        <i class="fa-solid fa-file-pdf"></i>
+        <h3>Klikněte nebo sem přetáhněte PDF</h3>
+        <p>Podporovaný formát: PDF</p>
+    </div>
+    <input type="file" id="fileInput" accept=".pdf">
+
+    <ul class="file-list" id="fileList"></ul>
+
+    <button class="btn-generate" id="generateBtn" disabled>
+        <i class="fa-solid fa-pen-nib"></i> Otevřít k podpisu
+    </button>
+    <div id="status"></div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const fileList = document.getElementById('fileList');
+        const generateBtn = document.getElementById('generateBtn');
+        const statusDiv = document.getElementById('status');
+        
+        let selectedFile = null;
+
+        // Upload Area Clicks
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        // File Selection
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                addFile(e.target.files[0]);
+            }
+        });
+
+        // Drag & Drop to Upload Area
+        uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.style.background = 'rgba(197, 160, 89, 0.3)'; });
+        uploadArea.addEventListener('dragleave', () => { uploadArea.style.background = 'rgba(197, 160, 89, 0.1)'; });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.background = 'rgba(197, 160, 89, 0.1)';
+            if (e.dataTransfer.files.length > 0) {
+                addFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        function addFile(f) {
+            if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')) {
+                selectedFile = f;
+                renderFile();
+            } else {
+                alert("Prosím vyberte PDF soubor.");
+            }
+        }
+
+        function renderFile() {
+            fileList.innerHTML = '';
+            if (selectedFile) {
+                const li = document.createElement('li');
+                li.className = 'file-item';
+                li.innerHTML = `
+                    <span><i class="fa-solid fa-file-pdf" style="margin-right:10px; color:#aaa;"></i> ${selectedFile.name}</span> 
+                    <i class="fa-solid fa-trash" style="color:#d9534f; cursor:pointer;" onclick="removeFile()"></i>
+                `;
+                fileList.appendChild(li);
+                generateBtn.disabled = false;
+            } else {
+                generateBtn.disabled = true;
+            }
+        }
+
+        window.removeFile = function() {
+            selectedFile = null;
+            renderFile();
+        }
+
+        generateBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+            generateBtn.disabled = true;
+            statusDiv.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Připravuji dokument...';
+            
+            const formData = new FormData();
+            formData.append('files', selectedFile);
+
+            try {
+                const res = await fetch('/api/jobs/sign-pdf', {
+                    method: 'POST',
+                    body: formData
+                });
+                const payload = await res.json();
+                
+                statusDiv.innerText = `${payload.status}: ${payload.message}`;
+                
+                if (payload.manual_url) {
+                    window.location.href = payload.manual_url;
+                } else if (payload.output_urls && payload.output_urls.length > 0) {
+                    // It was signed automatically!
+                    payload.output_urls.forEach(url => window.open(url, '_blank'));
+                    selectedFile = null;
+                    renderFile();
+                }
+            } catch (err) {
+                statusDiv.innerText = 'Chyba serveru.';
+            } finally {
+                generateBtn.disabled = !selectedFile;
+            }
+        });
+    </script>
+</body>
+</html>
