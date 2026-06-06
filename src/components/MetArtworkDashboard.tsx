@@ -90,7 +90,7 @@ export function MetArtworkDashboard() {
   if (!artwork) return null;
 
   return (
-    <section className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950/40">
+    <section className="flex h-full min-h-0 flex-col overflow-visible rounded-lg border border-zinc-800 bg-zinc-950/40">
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-zinc-800 bg-zinc-900/70 px-3 py-2">
         <h2 className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
           <Palette className="h-4 w-4 shrink-0 text-amber-500" />
@@ -101,19 +101,19 @@ export function MetArtworkDashboard() {
         </div>
       </div>
 
-      <div className="grid gap-3 p-3 sm:grid-cols-[10rem_1fr]">
+      <div className="grid h-full min-h-0 gap-3 p-3 sm:grid-cols-[9rem_1fr]">
         <a
           href={artwork.metUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="group relative block aspect-[4/3] overflow-hidden rounded-md border border-zinc-800 bg-zinc-900/50"
+          className="group relative flex h-full min-h-[9rem] items-center justify-center overflow-hidden rounded-md border border-zinc-800 bg-zinc-900/50"
           title="Otevřít obraz v Metu"
         >
-          {artwork.imageSmall ? (
+          {(artwork.imageSmall || artwork.image) ? (
             <img
-              src={artwork.imageSmall}
+              src={artwork.imageSmall || artwork.image}
               alt={`${artwork.title}, ${artwork.artist}`}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="h-full w-full object-contain"
             />
           ) : (
             <div className="flex h-full items-center justify-center text-zinc-500">
@@ -125,7 +125,7 @@ export function MetArtworkDashboard() {
         <div className="min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <h3 className="line-clamp-2 text-[15px] font-semibold leading-tight text-zinc-100">
+              <h3 className="text-[15px] font-semibold leading-tight text-zinc-100">
                 {artwork.title}
               </h3>
               <p className="mt-1 text-xs text-zinc-500">
@@ -144,7 +144,7 @@ export function MetArtworkDashboard() {
             </a>
           </div>
 
-          <p className="mt-2 line-clamp-3 text-[12px] leading-snug text-zinc-400">
+          <p className="mt-2 text-[12px] leading-snug text-zinc-400">
             {artwork.description}
           </p>
 
@@ -154,7 +154,7 @@ export function MetArtworkDashboard() {
 
           {(artwork.medium || artwork.department) && (
             <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[11px] text-zinc-500">
-              {artwork.medium && <span className="line-clamp-1">{artwork.medium}</span>}
+              {artwork.medium && <span>{artwork.medium}</span>}
               {artwork.department && <span>{artwork.department}</span>}
             </div>
           )}

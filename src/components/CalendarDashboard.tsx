@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Calendar as CalendarIcon, Clock, Loader2, AlertCircle, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Pencil, Save, X } from 'lucide-react';
+import { FAMILY_CALENDARS } from '../lib/familyCalendars';
 
 interface Calendar {
   id: string;
   summary: string;
   backgroundColor?: string;
+  primary?: boolean;
 }
 
 interface CalendarEvent {
@@ -22,17 +24,6 @@ interface CalendarData {
   error: string | null;
 }
 
-const TARGET_CALENDARS = ['Vlada', 'Ulinka', 'Max', 'Avi', 'Beatrix'];
-const TARGET_CALENDAR_ALIASES: Record<string, string[]> = {
-  Vlada: ['vlada', 'vladimir', 'vlado'],
-  Ulinka: ['ulinka', 'uliana', 'ulca'],
-  Max: ['max', 'maxim'],
-  Avi: ['avi'],
-  Beatrix: ['beatrix', 'bea', 'betka'],
-};
-const CALENDAR_COLOR_OVERRIDES: Record<string, string> = {
-  beatrix: '#ec4899',
-};
 const DAY_START_HOUR = 0;
 const DAY_END_HOUR = 24;
 const HOURS = Array.from(
@@ -40,23 +31,10 @@ const HOURS = Array.from(
   (_, index) => DAY_START_HOUR + index
 );
 const VISIBLE_HOURS = DAY_END_HOUR - DAY_START_HOUR;
-
-const normalizeCalendarName = (value: string) =>
-  value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
-
-const getTargetCalendarOrder = (calendar: Calendar) => {
-  const normalizedSummary = normalizeCalendarName(calendar.summary);
-  const index = TARGET_CALENDARS.findIndex(name =>
-    TARGET_CALENDAR_ALIASES[name].some(alias => normalizedSummary.includes(alias))
-  );
-
-  return index === -1 ? Number.MAX_SAFE_INTEGER : index;
-};
-
-const matchesTargetCalendar = (calendar: Calendar) => getTargetCalendarOrder(calendar) !== Number.MAX_SAFE_INTEGER;
+const getHourTopPercent = (hour: number) =>
+  ((hour - DAY_START_HOUR) / VISIBLE_HOURS) * 100;
+const getHourLabelTopPercent = (hour: number) =>
+  ((hour - DAY_START_HOUR + 0.5) / VISIBLE_HOURS) * 100;
 
 interface EditingEvent {
   calendarId: string;
@@ -96,12 +74,19 @@ export function CalendarDashboard({ isConnected }: { isConnected: boolean }) {
         const res = await fetch('/api/calendar/list');
         if (!res.ok) throw new Error('Nepodařilo se načíst seznam kalendářů');
         const allCalendars: Calendar[] = await res.json();
-        
-        // Filter calendars based on target names
-        const matchingCalendars = allCalendars
-          .filter(matchesTargetCalendar)
-          .sort((a, b) => getTargetCalendarOrder(a) - getTargetCalendarOrder(b));
-        const targetCals = matchingCalendars.length > 0 ? matchingCalendars : allCalendars;
+
+        const targetCals = FAMILY_CALENDARS.map(familyCalendar => {
+          const listedCalendar = allCalendars.find(calendar =>
+            calendar.id === familyCalendar.calendarId
+              || (familyCalendar.calendarId === 'primary' && calendar.primary)
+          );
+
+          return {
+            id: familyCalendar.calendarId,
+            summary: familyCalendar.displayName,
+            backgroundColor: familyCalendar.color || listedCalendar?.backgroundColor,
+          };
+        });
 
         // Initialize state with loading for each calendar
         setCalendarsData(targetCals.map(cal => ({
@@ -414,9 +399,7 @@ export function CalendarDashboard({ isConnected }: { isConnected: boolean }) {
     ? calendarsData.find(data => data.calendar.id === editingEvent.calendarId)?.calendar
     : null;
   const getCalendarColor = (calendar: Calendar) => {
-    const normalizedSummary = calendar.summary.toLowerCase();
-    const overrideKey = Object.keys(CALENDAR_COLOR_OVERRIDES).find(name => normalizedSummary.includes(name));
-    return overrideKey ? CALENDAR_COLOR_OVERRIDES[overrideKey] : (calendar.backgroundColor || '#6366f1');
+    return calendar.backgroundColor || '#6366f1';
   };
 
   return (
@@ -488,13 +471,20 @@ export function CalendarDashboard({ isConnected }: { isConnected: boolean }) {
                   {HOURS.map(hour => (
                     <div
                       key={hour}
-                      className="absolute left-0 right-0 border-t border-zinc-800/80 pr-2 text-right text-[11px] text-zinc-500"
-                      style={{ top: `${((hour - DAY_START_HOUR) / VISIBLE_HOURS) * 100}%` }}
-                    >
-                      {hour !== DAY_START_HOUR && hour !== DAY_END_HOUR && (
-                        <span className="-translate-y-2.5 inline-block tabular-nums">{hour}:00</span>
-                      )}
-                    </div>
+                      className="absolute left-0 right-0 border-t border-zinc-800/80"
+                      style={{ top: `${getHourTopPercent(hour)}%` }}
+                    />
+                  ))}
+                  {HOURS.map(hour => (
+                    hour !== DAY_START_HOUR && hour !== DAY_END_HOUR && (
+                      <span
+                        key={hour}
+                        className="absolute right-2 -translate-y-1/2 tabular-nums text-[11px] text-zinc-500"
+                        style={{ top: `${getHourLabelTopPercent(hour)}%` }}
+                      >
+                        {hour}:00
+                      </span>
+                    )
                   ))}
                 </div>
 
@@ -513,7 +503,7 @@ export function CalendarDashboard({ isConnected }: { isConnected: boolean }) {
                         <div
                           key={hour}
                           className="absolute left-0 right-0 border-t border-zinc-800/60"
-                          style={{ top: `${((hour - DAY_START_HOUR) / VISIBLE_HOURS) * 100}%` }}
+                          style={{ top: `${getHourTopPercent(hour)}%` }}
                         />
                       ))}
 

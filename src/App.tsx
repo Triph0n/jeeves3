@@ -8,9 +8,10 @@ import { MkzDashboard } from './components/MkzDashboard';
 import { VzmDashboard } from './components/VzmDashboard';
 import { DiscordDashboard } from './components/DiscordDashboard';
 import { MetArtworkDashboard } from './components/MetArtworkDashboard';
+import { AuntAgathaVerbDashboard } from './components/AuntAgathaVerbDashboard';
 import jeevesIcon from '../assets/jeeves3-icon.png';
-import auntAgathaPortrait from '../assets/aunt-agatha-period-portrait.png';
 import baxterPortrait from '../assets/baxter-period-portrait.png';
+import shaunPortrait from '../assets/shaun-portrait.png';
 
 export default function App() {
   const {
@@ -24,7 +25,6 @@ export default function App() {
   const [isCalendarConnected, setIsCalendarConnected] = useState(false);
   const [calendarReconnectRequired, setCalendarReconnectRequired] = useState(false);
   const [isBaxterOpening, setIsBaxterOpening] = useState(false);
-  const [isAuntAgathaOpening, setIsAuntAgathaOpening] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const chatMentionsBaxter = /baxter/i.test(chatInput);
   const chatMentionsNetflix = /netflix/i.test(chatInput);
@@ -74,21 +74,6 @@ export default function App() {
     }
   };
 
-  const handleOpenAuntAgatha = async () => {
-    setIsAuntAgathaOpening(true);
-    try {
-      const res = await fetch('/api/aunt-agatha/open', { method: 'POST' });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.success === false) {
-        throw new Error(data.error || 'Aunt Agatha se nepodařila otevřít');
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsAuntAgathaOpening(false);
-    }
-  };
-
   const handleSendMessage = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (sendTextMessage(chatInput)) {
@@ -125,13 +110,6 @@ export default function App() {
               <Send className="h-4 w-4" />
             </button>
           </form>
-          <div
-            className="shrink-0 rounded-md border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-400"
-            title="Odhad ceny tokenů Jeevese za aktuální měsíc podle Gemini API ceníku."
-          >
-            <span className="text-zinc-500">mzda:</span>{' '}
-            <span className="font-medium text-zinc-100">{formattedMonthlyUsageCost}</span>
-          </div>
         </div>
         <div className="flex shrink-0 items-center gap-4">
           <button
@@ -192,38 +170,38 @@ export default function App() {
                 <DiscordDashboard />
               </div>
               <div className="col-span-2 min-w-0 overflow-hidden">
-                <MetArtworkDashboard />
+                <AuntAgathaVerbDashboard />
+              </div>
+              <div className="col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_7rem] items-stretch gap-3 overflow-visible">
+                <div className="min-w-0 overflow-visible">
+                  <MetArtworkDashboard />
+                </div>
+                <div className="flex min-w-0 flex-col justify-end gap-3 pb-1">
+                  <button
+                    type="button"
+                    onClick={() => fetch('/api/folder/max30', { method: 'POST' })}
+                    className="group flex w-full flex-col items-center justify-start rounded-2xl border border-zinc-800/60 bg-zinc-900/50 p-2 font-medium text-zinc-500 transition-all hover:bg-zinc-800/50 hover:border-zinc-500 hover:text-zinc-900"
+                    title="Otevřít složku Max30"
+                  >
+                    <img src={shaunPortrait} alt="" className="h-20 w-20 rounded-full border-2 border-zinc-700/40 object-cover shadow-sm transition-transform group-hover:scale-105" />
+                    <span className="mt-2 text-center text-[11px] font-bold uppercase tracking-wide">Shaun</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleOpenBaxter}
+                    disabled={isBaxterOpening}
+                    className="group flex w-full flex-col items-center justify-start rounded-2xl border border-zinc-800/60 bg-zinc-900/50 p-2 font-medium text-zinc-500 transition-all hover:bg-zinc-800/50 hover:border-amber-600/50 hover:text-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    title={isBaxterOpening ? 'Otevírám Výkonného Baxtera' : 'Otevřít Výkonného Baxtera'}
+                  >
+                    <img src={baxterPortrait} alt="" className="h-20 w-20 rounded-full border-2 border-zinc-700/40 object-cover shadow-sm transition-transform group-hover:scale-105" />
+                    <span className="mt-2 text-center text-[11px] font-bold uppercase leading-tight tracking-wide">{isBaxterOpening ? 'Otevírám...' : 'Baxter'}</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </main>
-      <div className="companion-buttons">
-        <button
-          type="button"
-          onClick={handleOpenBaxter}
-          disabled={isBaxterOpening}
-          className="companion-button"
-          title={isBaxterOpening ? 'Otevírám Výkonného Baxtera' : 'Otevřít Výkonného Baxtera'}
-        >
-          <span className="companion-button__icon">
-            <img src={baxterPortrait} alt="" className="companion-button__portrait" />
-          </span>
-          <span>{isBaxterOpening ? 'Otevírám...' : 'Baxter'}</span>
-        </button>
-        <button
-          type="button"
-          onClick={handleOpenAuntAgatha}
-          disabled={isAuntAgathaOpening}
-          className="companion-button"
-          title={isAuntAgathaOpening ? 'Otevírám Aunt Agatha' : 'Otevřít Aunt Agatha'}
-        >
-          <span className="companion-button__icon">
-            <img src={auntAgathaPortrait} alt="" className="companion-button__portrait" />
-          </span>
-          <span>{isAuntAgathaOpening ? 'Otevírám...' : 'Aunt Agatha'}</span>
-        </button>
-      </div>
     </div>
   );
 }

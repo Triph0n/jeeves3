@@ -6,7 +6,6 @@ import tailwindcss from "@tailwindcss/vite";
 import { google } from "googleapis";
 import cookieParser from "cookie-parser";
 import path from "path";
-import os from "os";
 import fs from "fs/promises";
 import fsSync from "fs";
 import { createRequire } from "module";
@@ -14,7 +13,7 @@ import * as cheerio from "cheerio";
 import { spawn } from "child_process";
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT || 3000);
 const TOKEN_DIR = path.join(process.cwd(), ".auth");
 const TOKEN_FILE = path.join(TOKEN_DIR, "google-calendar-token.json");
 const USAGE_DB_FILE = path.join(TOKEN_DIR, "jeeves-usage.sqlite");
@@ -42,29 +41,45 @@ const DISCORD_LISTING_CHANNEL_ID = "1505505323723788329";
 const DISCORD_LISTING_MESSAGE_ID = "1505854691026927686";
 const MET_COLLECTION_API_URL = "https://collectionapi.metmuseum.org/public/collection/v1";
 const ARTWORK_OF_THE_DAY_TIME_ZONE = process.env.JEEVES_ARTWORK_TIME_ZONE || "Europe/Zurich";
+const AGATHA_TIME_ZONE = process.env.JEEVES_AGATHA_TIME_ZONE || "Asia/Jerusalem";
+const AGATHA_VERB_SOURCE_URL = "https://www.verbtime.com/en/verbtables/german/list_strong.html";
 const NETFLIX_BROWSE_URL = "https://www.netflix.com/browse";
 const NETFLIX_SEARCH_URL = "https://www.netflix.com/search";
 const BAXTER_URL = "http://127.0.0.1:8765";
 const BAXTER_HEALTH_URL = `${BAXTER_URL}/api/health`;
 const BAXTER_ROOT = path.join(process.cwd(), "Baxter");
 const BAXTER_PYTHON = path.join(BAXTER_ROOT, ".venv", "Scripts", "python.exe");
-const GEMINI_APP_URL = "https://gemini.google.com/app";
-const GEMINI_DESKTOP_SHORTCUT_NAME = "Google Gemini.lnk";
-const AUNT_AGATHA_INSTRUCTION = [
-  "Jsi Aunt Agatha, trpělivý, přísný a věcný německý tutor němčiny.",
-  "Mluv se mnou primárně německy a veď se mnou živou konverzaci.",
-  "Když udělám chybu v němčině, vždy mě oprav: krátce napiš nebo řekni správnou verzi a stručně vysvětli proč.",
-  "Nepřerušuj každou větu dlouhou přednáškou; opravy drž krátké a praktické.",
-  "Nepodlézej mi, nechval mě automaticky a nepoužívej prázdné povzbuzování.",
-  "Buď trpělivý, jasný a důsledný. Když mluvím česky nebo anglicky, pomoz mi převést myšlenku do přirozené němčiny.",
-  "Začni německy jednoduchou otázkou a pokračuj podle mých odpovědí.",
-].join("\n");
+const AGATHA_VERBS = [
+  { id: "gehen", infinitive: "gehen", translationCs: "jít", present3: "geht", preterite: "ging", perfect: "ist gegangen", example: "Sie ist gestern nach Hause gegangen." },
+  { id: "sehen", infinitive: "sehen", translationCs: "vidět", present3: "sieht", preterite: "sah", perfect: "hat gesehen", example: "Er hat den Film schon gesehen." },
+  { id: "kommen", infinitive: "kommen", translationCs: "přijít, přijíždět", present3: "kommt", preterite: "kam", perfect: "ist gekommen", example: "Meine Tante ist um acht gekommen." },
+  { id: "nehmen", infinitive: "nehmen", translationCs: "vzít, brát", present3: "nimmt", preterite: "nahm", perfect: "hat genommen", example: "Ich habe den Zug genommen." },
+  { id: "sprechen", infinitive: "sprechen", translationCs: "mluvit", present3: "spricht", preterite: "sprach", perfect: "hat gesprochen", example: "Wir haben lange Deutsch gesprochen." },
+  { id: "essen", infinitive: "essen", translationCs: "jíst", present3: "isst", preterite: "aß", perfect: "hat gegessen", example: "Das Kind hat Suppe gegessen." },
+  { id: "geben", infinitive: "geben", translationCs: "dát, dávat", present3: "gibt", preterite: "gab", perfect: "hat gegeben", example: "Sie hat mir ein Buch gegeben." },
+  { id: "finden", infinitive: "finden", translationCs: "najít, shledat", present3: "findet", preterite: "fand", perfect: "hat gefunden", example: "Er hat den Schlüssel gefunden." },
+  { id: "bleiben", infinitive: "bleiben", translationCs: "zůstat", present3: "bleibt", preterite: "blieb", perfect: "ist geblieben", example: "Wir sind zu Hause geblieben." },
+  { id: "fahren", infinitive: "fahren", translationCs: "jet, řídit", present3: "fährt", preterite: "fuhr", perfect: "ist gefahren", example: "Sie ist nach Zürich gefahren." },
+  { id: "lesen", infinitive: "lesen", translationCs: "číst", present3: "liest", preterite: "las", perfect: "hat gelesen", example: "Ich habe den Brief gelesen." },
+  { id: "schreiben", infinitive: "schreiben", translationCs: "psát", present3: "schreibt", preterite: "schrieb", perfect: "hat geschrieben", example: "Er hat eine Nachricht geschrieben." },
+  { id: "trinken", infinitive: "trinken", translationCs: "pít", present3: "trinkt", preterite: "trank", perfect: "hat getrunken", example: "Sie hat Wasser getrunken." },
+  { id: "schlafen", infinitive: "schlafen", translationCs: "spát", present3: "schläft", preterite: "schlief", perfect: "hat geschlafen", example: "Das Baby hat gut geschlafen." },
+  { id: "laufen", infinitive: "laufen", translationCs: "běžet, chodit", present3: "läuft", preterite: "lief", perfect: "ist gelaufen", example: "Er ist schnell gelaufen." },
+  { id: "rufen", infinitive: "rufen", translationCs: "volat", present3: "ruft", preterite: "rief", perfect: "hat gerufen", example: "Die Lehrerin hat meinen Namen gerufen." },
+  { id: "helfen", infinitive: "helfen", translationCs: "pomoci", present3: "hilft", preterite: "half", perfect: "hat geholfen", example: "Wir haben dem Nachbarn geholfen." },
+  { id: "treffen", infinitive: "treffen", translationCs: "potkat, trefit", present3: "trifft", preterite: "traf", perfect: "hat getroffen", example: "Ich habe Ursula im Café getroffen." },
+  { id: "wissen", infinitive: "wissen", translationCs: "vědět", present3: "weiß", preterite: "wusste", perfect: "hat gewusst", example: "Sie hat die Antwort gewusst." },
+  { id: "denken", infinitive: "denken", translationCs: "myslet", present3: "denkt", preterite: "dachte", perfect: "hat gedacht", example: "Ich habe an dich gedacht." },
+  { id: "bringen", infinitive: "bringen", translationCs: "přinést", present3: "bringt", preterite: "brachte", perfect: "hat gebracht", example: "Er hat Blumen gebracht." },
+  { id: "singen", infinitive: "singen", translationCs: "zpívat", present3: "singt", preterite: "sang", perfect: "hat gesungen", example: "Sie hat ein Lied gesungen." },
+  { id: "stehen", infinitive: "stehen", translationCs: "stát", present3: "steht", preterite: "stand", perfect: "hat gestanden", example: "Das Glas hat auf dem Tisch gestanden." },
+  { id: "liegen", infinitive: "liegen", translationCs: "ležet", present3: "liegt", preterite: "lag", perfect: "hat gelegen", example: "Das Buch hat auf dem Bett gelegen." },
+];
 let lastNetflixOpenAt = 0;
 let lastNetflixUrl = "";
 let lastBaxterOpenAt = 0;
 let lastBaxterAdvertUrl = "";
 let lastBaxterAdvertAt = 0;
-let lastAuntAgathaOpenAt = 0;
 let gmailTriageRunPromise: Promise<any> | null = null;
 const GEMINI_LIVE_PRICING_USD_PER_1M = {
   input: {
@@ -125,6 +140,51 @@ const getUsageDb = () => {
         cost_usd REAL NOT NULL DEFAULT 0,
         metadata_json TEXT NOT NULL,
         PRIMARY KEY (session_id, month)
+      );
+
+      CREATE TABLE IF NOT EXISTS agatha_daily_verbs (
+        day_key TEXT PRIMARY KEY,
+        verb_id TEXT NOT NULL,
+        shown_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS agatha_verb_catalog (
+        verb_id TEXT PRIMARY KEY,
+        infinitive TEXT NOT NULL,
+        preterite TEXT NOT NULL,
+        participle TEXT NOT NULL,
+        source_url TEXT NOT NULL,
+        imported_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS agatha_catalog_imports (
+        source_url TEXT PRIMARY KEY,
+        imported_at TEXT NOT NULL,
+        verb_count INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS agatha_known_verbs (
+        verb_id TEXT PRIMARY KEY,
+        first_seen_at TEXT NOT NULL,
+        last_seen_at TEXT NOT NULL,
+        seen_count INTEGER NOT NULL DEFAULT 1
+      );
+
+      CREATE TABLE IF NOT EXISTS agatha_review_attempts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        verb_id TEXT NOT NULL,
+        prompt_kind TEXT NOT NULL,
+        answer TEXT NOT NULL,
+        expected TEXT NOT NULL,
+        correct INTEGER NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS agatha_chat_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        role TEXT NOT NULL,
+        text TEXT NOT NULL,
+        created_at TEXT NOT NULL
       );
     `);
   }
@@ -328,76 +388,6 @@ const openUrlInWindows = (url: string) => {
   opener.unref();
 };
 
-const toPowerShellSingleQuoted = (value: string) => `'${value.replace(/'/g, "''")}'`;
-
-const runDetachedPowerShell = (script: string) =>
-  new Promise<void>((resolve, reject) => {
-    const child = spawn("powershell.exe", [
-      "-NoProfile",
-      "-STA",
-      "-ExecutionPolicy",
-      "Bypass",
-      "-Command",
-      script,
-    ], {
-      detached: true,
-      stdio: "ignore",
-      windowsHide: true,
-    });
-
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code && code !== 0) reject(new Error(`PowerShell skončil s kódem ${code}.`));
-      else resolve();
-    });
-  });
-
-const getGeminiDesktopShortcutPath = () => {
-  const userDesktop = path.join(process.env.USERPROFILE || os.homedir(), "Desktop", GEMINI_DESKTOP_SHORTCUT_NAME);
-  if (fsSync.existsSync(userDesktop)) return userDesktop;
-
-  const publicDesktop = path.join(process.env.PUBLIC || "C:\\Users\\Public", "Desktop", GEMINI_DESKTOP_SHORTCUT_NAME);
-  if (fsSync.existsSync(publicDesktop)) return publicDesktop;
-
-  return "";
-};
-
-const openAuntAgatha = async () => {
-  const now = Date.now();
-  if (now - lastAuntAgathaOpenAt < 3000) {
-    return {
-      result: "Aunt Agatha se už otevírá. Instrukce jsou připravené ve schránce.",
-      url: GEMINI_APP_URL,
-    };
-  }
-  lastAuntAgathaOpenAt = now;
-
-  const shortcutPath = getGeminiDesktopShortcutPath();
-  const encodedInstruction = Buffer.from(AUNT_AGATHA_INSTRUCTION, "utf16le").toString("base64");
-  const shortcutLiteral = shortcutPath ? toPowerShellSingleQuoted(shortcutPath) : "$null";
-  const geminiUrlLiteral = toPowerShellSingleQuoted(GEMINI_APP_URL);
-  const script = `
-$instruction = [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String('${encodedInstruction}'))
-Set-Clipboard -Value $instruction
-$shortcut = ${shortcutLiteral}
-if ($shortcut -and (Test-Path -LiteralPath $shortcut)) {
-  Start-Process -LiteralPath $shortcut
-} else {
-  Start-Process ${geminiUrlLiteral}
-}
-`.trim();
-
-  await runDetachedPowerShell(script);
-
-  return {
-    result: shortcutPath
-      ? "Otevřel jsem Google Gemini. Instrukce Aunt Agatha jsou ve schránce."
-      : "Otevřel jsem Gemini v prohlížeči. Instrukce Aunt Agatha jsou ve schránce.",
-    url: GEMINI_APP_URL,
-    shortcutFound: Boolean(shortcutPath),
-  };
-};
-
 const buildNetflixUrl = (title?: string) => {
   const cleanTitle = String(title || "").trim().replace(/^film\s+/i, "").trim();
   if (!cleanTitle) return { url: NETFLIX_BROWSE_URL, title: "" };
@@ -583,6 +573,352 @@ const getLocalDateKey = (date = new Date()) => {
   const month = parts.find(part => part.type === "month")?.value || String(date.getMonth() + 1).padStart(2, "0");
   const day = parts.find(part => part.type === "day")?.value || String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+};
+
+const getAgathaDateKey = (date = new Date()) => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: AGATHA_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const year = parts.find(part => part.type === "year")?.value || String(date.getFullYear());
+  const month = parts.find(part => part.type === "month")?.value || String(date.getMonth() + 1).padStart(2, "0");
+  const day = parts.find(part => part.type === "day")?.value || String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const stripGermanAuxiliary = (value: unknown) =>
+  String(value || "").trim().replace(/^(?:hat|ist)\s+/i, "");
+
+const fallbackAgathaVerbPayload = (verb: typeof AGATHA_VERBS[number], dayKey?: string) => ({
+  id: verb.id,
+  infinitive: verb.infinitive,
+  translationCs: verb.translationCs,
+  present3: verb.present3,
+  preterite: verb.preterite,
+  perfect: stripGermanAuxiliary(verb.perfect),
+  example: verb.example,
+  sourceUrl: "fallback",
+  dayKey,
+});
+
+const parseAgathaVerbCatalog = (html: string) => {
+  const $ = cheerio.load(html);
+  const text = $("body").text();
+  const listStart = text.indexOf("This list contains the strong German verbs.");
+  const listEnd = text.indexOf("Support:", listStart);
+  const listText = text.slice(
+    listStart === -1 ? 0 : listStart,
+    listEnd === -1 ? undefined : listEnd
+  );
+
+  const rows = new Map<string, { id: string; infinitive: string; preterite: string; participle: string }>();
+  for (const rawLine of listText.split(/\r?\n/)) {
+    const line = rawLine.replace(/\s+/g, " ").trim();
+    const match = line.match(/^([A-Za-zÄÖÜäöüß]+)\s+([A-Za-zÄÖÜäöüß]+)\s+([A-Za-zÄÖÜäöüß]+)$/);
+    if (!match) continue;
+
+    const [, infinitive, preterite, participle] = match;
+    if (infinitive.length < 3 || preterite.length < 2 || participle.length < 3) continue;
+    rows.set(infinitive, {
+      id: infinitive,
+      infinitive,
+      preterite,
+      participle,
+    });
+  }
+
+  return [...rows.values()];
+};
+
+const importAgathaVerbCatalog = async ({ force = false } = {}) => {
+  const db = getUsageDb();
+  const existing = db.prepare("SELECT COUNT(*) AS count FROM agatha_verb_catalog").get() as any;
+  if (!force && Number(existing?.count || 0) >= 50) {
+    return { imported: false, count: Number(existing.count || 0), sourceUrl: AGATHA_VERB_SOURCE_URL };
+  }
+
+  try {
+    const response = await fetch(AGATHA_VERB_SOURCE_URL, {
+      headers: {
+        "Accept": "text/html,application/xhtml+xml",
+        "Accept-Language": "de,en;q=0.8,cs;q=0.7",
+        "User-Agent": "Jeeves 3.0 Aunt Agatha verb importer/1.0",
+      },
+    });
+    if (!response.ok) throw new Error(`Verb source error: ${response.status}`);
+
+    const verbs = parseAgathaVerbCatalog(await response.text());
+    if (verbs.length < 50) throw new Error(`Import našel jen ${verbs.length} sloves.`);
+
+    const importedAt = new Date().toISOString();
+    const insert = db.prepare(`
+      INSERT INTO agatha_verb_catalog (verb_id, infinitive, preterite, participle, source_url, imported_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(verb_id) DO UPDATE SET
+        infinitive = excluded.infinitive,
+        preterite = excluded.preterite,
+        participle = excluded.participle,
+        source_url = excluded.source_url,
+        imported_at = excluded.imported_at
+    `);
+    for (const verb of verbs) {
+      insert.run(verb.id, verb.infinitive, verb.preterite, verb.participle, AGATHA_VERB_SOURCE_URL, importedAt);
+    }
+
+    db.prepare(`
+      INSERT INTO agatha_catalog_imports (source_url, imported_at, verb_count)
+      VALUES (?, ?, ?)
+      ON CONFLICT(source_url) DO UPDATE SET
+        imported_at = excluded.imported_at,
+        verb_count = excluded.verb_count
+    `).run(AGATHA_VERB_SOURCE_URL, importedAt, verbs.length);
+
+    return { imported: true, count: verbs.length, sourceUrl: AGATHA_VERB_SOURCE_URL };
+  } catch (error: any) {
+    console.warn("Aunt Agatha verb import failed", error.message);
+    return { imported: false, count: Number(existing?.count || 0), sourceUrl: AGATHA_VERB_SOURCE_URL, error: error.message };
+  }
+};
+
+const getAgathaCatalogRows = () => {
+  const db = getUsageDb();
+  const rows = db.prepare(`
+    SELECT verb_id, infinitive, preterite, participle, source_url, imported_at
+    FROM agatha_verb_catalog
+    ORDER BY infinitive ASC
+  `).all() as any[];
+
+  if (rows.length > 0) return rows;
+
+  return AGATHA_VERBS.map(verb => ({
+    verb_id: verb.id,
+    infinitive: verb.infinitive,
+    preterite: verb.preterite,
+    participle: stripGermanAuxiliary(verb.perfect),
+    source_url: "fallback",
+    imported_at: "",
+  }));
+};
+
+const getAgathaCatalogMeta = () => {
+  const db = getUsageDb();
+  const count = db.prepare("SELECT COUNT(*) AS count FROM agatha_verb_catalog").get() as any;
+  const lastImport = db.prepare(`
+    SELECT source_url, imported_at, verb_count
+    FROM agatha_catalog_imports
+    ORDER BY imported_at DESC
+    LIMIT 1
+  `).get() as any;
+
+  return {
+    sourceUrl: lastImport?.source_url || AGATHA_VERB_SOURCE_URL,
+    importedAt: lastImport?.imported_at || "",
+    catalogSize: Number(count?.count || 0) || AGATHA_VERBS.length,
+    usingFallback: Number(count?.count || 0) === 0,
+  };
+};
+
+const getAgathaVerbById = (verbId: unknown) => {
+  const id = String(verbId || "");
+  const db = getUsageDb();
+  const row = db.prepare(`
+    SELECT verb_id, infinitive, preterite, participle, source_url
+    FROM agatha_verb_catalog
+    WHERE verb_id = ?
+  `).get(id) as any;
+
+  if (row) {
+    return {
+      id: row.verb_id,
+      infinitive: row.infinitive,
+      translationCs: "",
+      present3: "",
+      preterite: row.preterite,
+      perfect: row.participle,
+      example: `${row.infinitive} - ${row.preterite} - ${row.participle}`,
+      sourceUrl: row.source_url,
+    };
+  }
+
+  const fallback = AGATHA_VERBS.find(verb => verb.id === id);
+  return fallback ? fallbackAgathaVerbPayload(fallback) : null;
+};
+
+const getAgathaVerbPayload = (verb: any, dayKey?: string) => ({
+  id: verb.id,
+  infinitive: verb.infinitive,
+  translationCs: verb.translationCs || "",
+  present3: verb.present3 || "",
+  preterite: verb.preterite,
+  perfect: stripGermanAuxiliary(verb.perfect),
+  example: verb.example || `${verb.infinitive} - ${verb.preterite} - ${stripGermanAuxiliary(verb.perfect)}`,
+  sourceUrl: verb.sourceUrl || AGATHA_VERB_SOURCE_URL,
+  dayKey,
+});
+
+const ensureTodayAgathaVerb = () => {
+  const db = getUsageDb();
+  const dayKey = getAgathaDateKey();
+  const now = new Date().toISOString();
+  const existing = db.prepare("SELECT verb_id FROM agatha_daily_verbs WHERE day_key = ?").get(dayKey) as any;
+  const existingVerb = existing ? getAgathaVerbById(existing.verb_id) : null;
+  if (existingVerb) return getAgathaVerbPayload(existingVerb, dayKey);
+
+  const knownRows = db.prepare("SELECT verb_id FROM agatha_known_verbs").all() as any[];
+  const knownIds = new Set(knownRows.map(row => String(row.verb_id)));
+  const totalDays = db.prepare("SELECT COUNT(*) AS count FROM agatha_daily_verbs").get() as any;
+  const catalog = getAgathaCatalogRows();
+  const nextRow = catalog.find(row => !knownIds.has(row.verb_id))
+    || catalog[Number(totalDays?.count || 0) % catalog.length];
+  const nextVerb = getAgathaVerbById(nextRow.verb_id);
+  if (!nextVerb) throw new Error("Aunt Agatha nemá žádné sloveso k zobrazení.");
+
+  db.prepare(`
+    INSERT INTO agatha_daily_verbs (day_key, verb_id, shown_at)
+    VALUES (?, ?, ?)
+  `).run(dayKey, nextVerb.id, now);
+
+  db.prepare(`
+    INSERT INTO agatha_known_verbs (verb_id, first_seen_at, last_seen_at, seen_count)
+    VALUES (?, ?, ?, 1)
+    ON CONFLICT(verb_id) DO UPDATE SET
+      last_seen_at = excluded.last_seen_at,
+      seen_count = seen_count + 1
+  `).run(nextVerb.id, now, now);
+
+  return getAgathaVerbPayload(nextVerb, dayKey);
+};
+
+const getAgathaKnownVerbs = () => {
+  ensureTodayAgathaVerb();
+  const db = getUsageDb();
+  const rows = db.prepare(`
+    SELECT verb_id, first_seen_at, last_seen_at, seen_count
+    FROM agatha_known_verbs
+    ORDER BY first_seen_at ASC
+  `).all() as any[];
+
+  return rows
+    .map(row => {
+      const verb = getAgathaVerbById(row.verb_id);
+      return verb ? {
+        ...getAgathaVerbPayload(verb),
+        firstSeenAt: row.first_seen_at,
+        lastSeenAt: row.last_seen_at,
+        seenCount: Number(row.seen_count || 0),
+      } : null;
+    })
+    .filter(Boolean);
+};
+
+const getAgathaStats = () => {
+  const db = getUsageDb();
+  const attempts = db.prepare(`
+    SELECT COUNT(*) AS total, COALESCE(SUM(correct), 0) AS correct
+    FROM agatha_review_attempts
+  `).get() as any;
+  const known = db.prepare("SELECT COUNT(*) AS total FROM agatha_known_verbs").get() as any;
+
+  return {
+    knownVerbs: Number(known?.total || 0),
+    attempts: Number(attempts?.total || 0),
+    correct: Number(attempts?.correct || 0),
+  };
+};
+
+const getAgathaMessages = () => {
+  const db = getUsageDb();
+  return (db.prepare(`
+    SELECT id, role, text, created_at
+    FROM agatha_chat_messages
+    ORDER BY id DESC
+    LIMIT 40
+  `).all() as any[])
+    .reverse()
+    .map(row => ({
+      id: Number(row.id),
+      role: row.role,
+      text: row.text,
+      createdAt: row.created_at,
+    }));
+};
+
+const getAgathaState = () => ({
+  today: ensureTodayAgathaVerb(),
+  knownVerbs: getAgathaKnownVerbs(),
+  stats: getAgathaStats(),
+  messages: getAgathaMessages(),
+  catalog: getAgathaCatalogMeta(),
+});
+
+const normalizeAgathaAnswer = (value: unknown) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[.,;:!?()[\]"']/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const getAgathaExpectedAnswers = (verb: any, promptKind: string) => {
+  if (promptKind === "present3") return [verb.present3];
+  if (promptKind === "preterite") return [verb.preterite];
+  if (promptKind === "perfect") {
+    const participle = stripGermanAuxiliary(verb.perfect);
+    return [verb.perfect, participle].filter(Boolean);
+  }
+  if (promptKind === "translationCs") {
+    return verb.translationCs.split(/[,;]/).map(item => item.trim()).filter(Boolean);
+  }
+  return [verb.infinitive];
+};
+
+const getAgathaPromptLabel = (promptKind: string) => {
+  if (promptKind === "present3") return "3. osoba jednotného čísla";
+  if (promptKind === "preterite") return "Präteritum";
+  if (promptKind === "perfect") return "Partizip II";
+  if (promptKind === "translationCs") return "český význam";
+  return "infinitiv";
+};
+
+const storeAgathaChatMessage = (role: "user" | "assistant", text: string) => {
+  const db = getUsageDb();
+  const cleanText = text.trim();
+  if (!cleanText) return;
+  db.prepare(`
+    INSERT INTO agatha_chat_messages (role, text, created_at)
+    VALUES (?, ?, ?)
+  `).run(role, cleanText, new Date().toISOString());
+};
+
+const buildAgathaReply = (message: string) => {
+  const cleanMessage = message.trim();
+  const normalized = normalizeSearchText(cleanMessage);
+  const today = ensureTodayAgathaVerb();
+  const stats = getAgathaStats();
+
+  if (!cleanMessage) return "Napište celou odpověď, prosím. Hádat pohledem se nepočítá.";
+  if (normalized.includes("zkous") || normalized.includes("kart") || normalized.includes("flash")) {
+    return `Gut. V kartičce napište tvar slovesa ${today.infinitive}; odpověď musí být napsaná, ne jen odkliknutá.`;
+  }
+  if (normalized.includes("dnes") || normalized.includes("sloves")) {
+    return `Dnešní sloveso je ${today.infinitive}: ${today.preterite}, ${today.perfect}. Věta: ${today.example}`;
+  }
+  if (normalized.includes("stat") || normalized.includes("kolik")) {
+    return `V databázi máte ${stats.knownVerbs} sloves a ${stats.correct}/${stats.attempts} správných písemných odpovědí.`;
+  }
+  if (normalized.includes("ahoj") || normalized.includes("hallo") || normalized.includes("guten")) {
+    return `Guten Tag. Dnes pracujeme se slovesem ${today.infinitive}. Žádné slavnostní obcházení, rovnou psát.`;
+  }
+
+  return `Rozumím. Zapište to německy pokud možno celou větou. Dnešní opora: ${today.infinitive}, ${today.preterite}, ${today.perfect}.`;
 };
 
 const readGmailTriageState = async () => {
@@ -1183,8 +1519,89 @@ app.post("/api/baxter/open", async (req, res) => {
 
 app.post("/api/aunt-agatha/open", async (req, res) => {
   try {
-    const result = await openAuntAgatha();
-    res.json({ success: true, ...result });
+    res.json({
+      success: true,
+      result: "Aunt Agatha je připravená přímo v Jeevesovi.",
+      ...getAgathaState(),
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get("/api/aunt-agatha/state", (req, res) => {
+  try {
+    res.json(getAgathaState());
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post("/api/aunt-agatha/import-verbs", async (req, res) => {
+  try {
+    const result = await importAgathaVerbCatalog({ force: Boolean(req.body?.force) });
+    res.json({ success: true, ...result, state: getAgathaState() });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post("/api/aunt-agatha/chat", (req, res) => {
+  try {
+    const message = String(req.body?.message || "").trim();
+    if (!message) {
+      return res.status(400).json({ success: false, error: "Chybí zpráva." });
+    }
+
+    storeAgathaChatMessage("user", message);
+    const reply = buildAgathaReply(message);
+    storeAgathaChatMessage("assistant", reply);
+    res.json({
+      success: true,
+      reply,
+      ...getAgathaState(),
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post("/api/aunt-agatha/review", (req, res) => {
+  try {
+    const verbId = String(req.body?.verbId || "").trim();
+    const promptKind = String(req.body?.promptKind || "").trim();
+    const answer = String(req.body?.answer || "").trim();
+    const verb = getAgathaVerbById(verbId);
+    if (!verb) return res.status(404).json({ success: false, error: "Sloveso nebylo nalezeno." });
+    if (!answer) return res.status(400).json({ success: false, error: "Odpověď musí být napsaná." });
+
+    const expectedAnswers = getAgathaExpectedAnswers(verb, promptKind);
+    const normalizedAnswer = normalizeAgathaAnswer(answer);
+    const correct = expectedAnswers.some(expected => normalizeAgathaAnswer(expected) === normalizedAnswer);
+    const expected = expectedAnswers[0] || "";
+    const createdAt = new Date().toISOString();
+    const db = getUsageDb();
+
+    db.prepare(`
+      INSERT INTO agatha_review_attempts (verb_id, prompt_kind, answer, expected, correct, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(verb.id, promptKind, answer, expected, correct ? 1 : 0, createdAt);
+
+    const label = getAgathaPromptLabel(promptKind);
+    const reply = correct
+      ? `Správně. ${verb.infinitive}, ${label}: ${expected}.`
+      : `Ne. ${verb.infinitive}, ${label}: ${expected}. Napsal jste: ${answer}.`;
+    storeAgathaChatMessage("assistant", reply);
+
+    res.json({
+      success: true,
+      correct,
+      expected,
+      expectedAnswers,
+      reply,
+      stats: getAgathaStats(),
+      messages: getAgathaMessages(),
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1277,13 +1694,19 @@ app.post("/api/baxter/gmail-brief/low-priority-senders", async (req, res) => {
 });
 
 app.post("/api/netflix/open", (req, res) => {
-  try {
-    const title = typeof req.body?.title === "string" ? req.body.title : "";
-    const result = openNetflix(title);
-    res.json({ success: true, ...result });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
+  const { title } = req.body;
+  const result = openNetflix(title);
+  res.json({ success: true, ...result });
+});
+
+app.post("/api/video/shaun", (req, res) => {
+  openUrlInWindows("C:\\Users\\Vladimir\\Documents\\Max30\\Max Out Sweat.mp4");
+  res.json({ success: true, result: "Video se Shaunem bylo spuštěno." });
+});
+
+app.post("/api/folder/max30", (req, res) => {
+  openUrlInWindows("C:\\Users\\Vladimir\\Documents\\Max30");
+  res.json({ success: true, result: "Složka Max30 byla otevřena." });
 });
 
 app.post("/api/usage/live", (req, res) => {
@@ -2073,6 +2496,8 @@ app.get("/api/discord/alerts", async (req, res) => {
 });
 
 async function startServer() {
+  await importAgathaVerbCatalog();
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       configFile: false,

@@ -8,6 +8,10 @@ import {
   resolveBaxterAdvertFromText,
   sendAdvertToBaxter,
 } from '../lib/baxterAdvert';
+import {
+  FAMILY_CALENDAR_DISPLAY_NAMES,
+  resolveFamilyCalendar,
+} from '../lib/familyCalendars';
 
 export interface ToolLog {
   id: string;
@@ -25,8 +29,8 @@ export interface ChatMessage {
   isStreaming?: boolean;
 }
 
-const CALENDAR_OWNER_NAMES = ['Vlada', 'Max', 'Avi', 'Ulinka', 'Beatrix'];
 const GEMINI_LIVE_MODEL = "gemini-3.1-flash-live-preview";
+const CALENDAR_TARGET_DESCRIPTION = `${FAMILY_CALENDAR_DISPLAY_NAMES.join(', ')} (aliasy: Vlada, Ulinka)`;
 const JEEVES_VOICE_STORAGE_KEY = "jeeves.voiceName";
 const BAXTER_MENTION_RE = /baxter/i;
 const NETFLIX_MENTION_RE = /netflix/i;
@@ -62,9 +66,10 @@ const JEEVES_SYSTEM_INSTRUCTION = [
   "Když uživatel požádá o poslání, předání, zpracování nebo přípravu inzerátu Baxterovi, použij nástroj sendAdvertToBaxter. Pokud uživatel neřekne konkrétní URL, nech nástroj vybrat aktuální inzerát z výpisu.",
   "Když uživatel požádá 'pusť na YouTube', 'najdi na YouTube', 'zahraj', 'spusť skladbu' nebo podobně a uvede skladbu/interpreta, zavolej playYouTube s přesným vyhledávacím dotazem.",
   "Když uživatel požádá 'spusť Netflix', 'otevři Netflix', 'zapni Netflix' nebo podobně, zavolej openNetflix. Pokud řekne název filmu nebo seriálu, pošli ho v argumentu title.",
+  "Když uživatel řekne 'Zavolej Shauna', 'zavolej šóna', 'česk šóna' nebo něco podobného, použij nástroj callShaun ke spuštění tréninkového videa.",
   "Pro počasí vždy použij getWeather; pokud uživatel neřekne jiné místo, předpokládej Kloten ve Švýcarsku.",
   "Pro získání seznamu kalendářů použij listCalendars.",
-  "KALENDÁŘOVÉ PŘÍKAZY: Uživatel bude říkat jen 'create', 'delete' nebo 'edit'. Po příkazu následuje jméno cílového kalendáře Vlada, Max, Avi, Ulinka nebo Beatrix a den/datum.",
+  "KALENDÁŘOVÉ PŘÍKAZY: Uživatel bude říkat jen 'create', 'delete' nebo 'edit'. Po příkazu následuje jméno cílového kalendáře Vladimir/Vlada, Ursula/Ulinka, Max, Avi nebo Beatrix a den/datum.",
   "Slovo create znamená vytvořit událost nástrojem addCalendarEvent. Slovo delete znamená najít událost v daném kalendáři a dni pomocí getCalendarEvents a potom ji smazat nástrojem deleteCalendarEvent.",
   "Slovo edit znamená najít událost v daném kalendáři a dni pomocí getCalendarEvents a potom ji změnit nástrojem editCalendarEvent.",
   "Jméno po příkazu vždy znamená kalendář, nikdy ho nepiš do názvu události. Do calendarId, calendarName nebo personName pošli toto jméno.",
@@ -72,18 +77,6 @@ const JEEVES_SYSTEM_INSTRUCTION = [
   "ABSOLUTNÍ PRAVIDLO PRO KALENDÁŘ: Kdykoliv uživatel požádá o zápis, přidání, změnu nebo smazání události, pouze spusť příslušný nástroj a zůstaň zcela zticha.",
   "Nesmíš říct vůbec nic, ani 'hotovo', 'zapsal jsem' nebo 'rozumím' - na žádosti o úpravu kalendáře odpověz výhradně jen zavoláním nástroje a jinak mlč.",
 ].join("\n");
-
-const normalizeCalendarName = (value: unknown) =>
-  String(value || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim()
-    .toLowerCase();
-
-const resolveCalendarOwner = (value: unknown) => {
-  const normalizedValue = normalizeCalendarName(value);
-  return CALENDAR_OWNER_NAMES.find(name => normalizeCalendarName(name) === normalizedValue) || null;
-};
 
 const startOfLocalDay = (date = new Date()) => {
   const day = new Date(date);
@@ -115,35 +108,21 @@ const getCalendarQueryWindow = (args: any) => {
 
 const prepareCalendarEventArgs = async (args: any) => {
   const preparedArgs = { ...args };
-  let owner = resolveCalendarOwner(preparedArgs.calendarId)
-    || resolveCalendarOwner(preparedArgs.calendarName)
-    || resolveCalendarOwner(preparedArgs.personName);
+  let familyCalendar = resolveFamilyCalendar(preparedArgs.calendarId)
+    || resolveFamilyCalendar(preparedArgs.calendarName)
+    || resolveFamilyCalendar(preparedArgs.personName);
 
-  if (!owner && typeof preparedArgs.summary === 'string') {
+  if (!familyCalendar && typeof preparedArgs.summary === 'string') {
     const [firstWord, ...rest] = preparedArgs.summary.trim().split(/\s+/);
-    owner = resolveCalendarOwner(firstWord);
-    if (owner && rest.length > 0) {
+    familyCalendar = resolveFamilyCalendar(firstWord);
+    if (familyCalendar && rest.length > 0) {
       preparedArgs.summary = rest.join(' ');
     }
   }
 
-  if (!owner) return preparedArgs;
+  if (!familyCalendar) return preparedArgs;
 
-  const calendarsRes = await fetch('/api/calendar/list');
-  if (!calendarsRes.ok) throw new Error(await calendarsRes.text());
-
-  const calendars = await calendarsRes.json();
-  const normalizedOwner = normalizeCalendarName(owner);
-  const calendar = calendars.find((item: any) =>
-    normalizeCalendarName(item.summary) === normalizedOwner
-      || normalizeCalendarName(item.summary).includes(normalizedOwner)
-  );
-
-  if (!calendar?.id) {
-    throw new Error(`Kalendář pro ${owner} nebyl nalezen.`);
-  }
-
-  preparedArgs.calendarId = calendar.id;
+  preparedArgs.calendarId = familyCalendar.calendarId;
   delete preparedArgs.calendarName;
   delete preparedArgs.personName;
   return preparedArgs;
@@ -569,6 +548,11 @@ export function useGeminiLive() {
                 parameters: { type: Type.OBJECT, properties: {} }
               },
               {
+                name: "callShaun",
+                description: "Spustí video se Shaunem (Max Out Sweat). Použij když uživatel řekne 'Zavolej Shauna' nebo 'zavolej šóna' nebo 'česk šóna'.",
+                parameters: { type: Type.OBJECT, properties: {} }
+              },
+              {
                 name: "sendAdvertToBaxter",
                 description: "Pošle URL pracovního inzerátu Baxterovi, aby připravil odpověď/žádost. Když URL chybí, Jeeves vybere aktuální inzerát z výpisu podle posledního pokynu uživatele.",
                 parameters: {
@@ -589,9 +573,9 @@ export function useGeminiLive() {
                 parameters: {
                   type: Type.OBJECT,
                   properties: {
-                    calendarId: { type: Type.STRING, description: "ID kalendáře nebo jméno cílového kalendáře: Vlada, Max, Avi, Ulinka, Beatrix." },
-                    calendarName: { type: Type.STRING, description: "Jméno cílového kalendáře, pokud je známo: Vlada, Max, Avi, Ulinka, Beatrix." },
-                    personName: { type: Type.STRING, description: "Jméno osoby/cílového kalendáře, pokud je známo: Vlada, Max, Avi, Ulinka, Beatrix." },
+                    calendarId: { type: Type.STRING, description: `ID kalendáře nebo jméno cílového kalendáře: ${CALENDAR_TARGET_DESCRIPTION}.` },
+                    calendarName: { type: Type.STRING, description: `Jméno cílového kalendáře, pokud je známo: ${CALENDAR_TARGET_DESCRIPTION}.` },
+                    personName: { type: Type.STRING, description: `Jméno osoby/cílového kalendáře, pokud je známo: ${CALENDAR_TARGET_DESCRIPTION}.` },
                     timeMin: { type: Type.STRING, description: "Začátek hledaného dne/období v ISO 8601 formátu." },
                     timeMax: { type: Type.STRING, description: "Konec hledaného dne/období v ISO 8601 formátu." },
                     days: { type: Type.NUMBER, description: "Počet dní dopředu, pokud nejsou zadány timeMin/timeMax." }
@@ -607,9 +591,9 @@ export function useGeminiLive() {
                     summary: { type: Type.STRING, description: "Název události" },
                     start: { type: Type.STRING, description: "Začátek události (ISO 8601 formát, např. 2026-03-30T15:00:00Z)" },
                     end: { type: Type.STRING, description: "Konec události (ISO 8601 formát)" },
-                    calendarId: { type: Type.STRING, description: "ID kalendáře nebo jméno cílového kalendáře: Vlada, Max, Avi, Ulinka, Beatrix. Pokud uživatel řekne toto jméno po 'vytvoř událost', použij ho zde a nepiš ho do názvu události." },
-                    calendarName: { type: Type.STRING, description: "Jméno cílového kalendáře, pokud je známo: Vlada, Max, Avi, Ulinka, Beatrix." },
-                    personName: { type: Type.STRING, description: "Jméno osoby/cílového kalendáře, pokud je známo: Vlada, Max, Avi, Ulinka, Beatrix." },
+                    calendarId: { type: Type.STRING, description: `ID kalendáře nebo jméno cílového kalendáře: ${CALENDAR_TARGET_DESCRIPTION}. Pokud uživatel řekne toto jméno po 'vytvoř událost', použij ho zde a nepiš ho do názvu události.` },
+                    calendarName: { type: Type.STRING, description: `Jméno cílového kalendáře, pokud je známo: ${CALENDAR_TARGET_DESCRIPTION}.` },
+                    personName: { type: Type.STRING, description: `Jméno osoby/cílového kalendáře, pokud je známo: ${CALENDAR_TARGET_DESCRIPTION}.` },
                     description: { type: Type.STRING, description: "Popis události (volitelné)" }
                   },
                   required: ["summary", "start", "end"]
@@ -617,28 +601,28 @@ export function useGeminiLive() {
               },
               {
                 name: "deleteCalendarEvent",
-                description: "Smaže událost z kalendáře podle jejího ID. Pro hlasový příkaz 'delete Vlada/Max/Avi/Ulinka/Beatrix den ...' nejdřív najdi správnou událost pomocí getCalendarEvents.",
+                description: "Smaže událost z kalendáře podle jejího ID. Pro hlasový příkaz 'delete Vladimir/Vlada/Ursula/Ulinka/Max/Avi/Beatrix den ...' nejdřív najdi správnou událost pomocí getCalendarEvents.",
                 parameters: {
                   type: Type.OBJECT,
                   properties: {
                     eventId: { type: Type.STRING, description: "ID události, kterou chceš smazat" },
-                    calendarId: { type: Type.STRING, description: "ID kalendáře nebo jméno cílového kalendáře: Vlada, Max, Avi, Ulinka, Beatrix." },
-                    calendarName: { type: Type.STRING, description: "Jméno cílového kalendáře, pokud je známo: Vlada, Max, Avi, Ulinka, Beatrix." },
-                    personName: { type: Type.STRING, description: "Jméno osoby/cílového kalendáře, pokud je známo: Vlada, Max, Avi, Ulinka, Beatrix." }
+                    calendarId: { type: Type.STRING, description: `ID kalendáře nebo jméno cílového kalendáře: ${CALENDAR_TARGET_DESCRIPTION}.` },
+                    calendarName: { type: Type.STRING, description: `Jméno cílového kalendáře, pokud je známo: ${CALENDAR_TARGET_DESCRIPTION}.` },
+                    personName: { type: Type.STRING, description: `Jméno osoby/cílového kalendáře, pokud je známo: ${CALENDAR_TARGET_DESCRIPTION}.` }
                   },
                   required: ["eventId"]
                 }
               },
               {
                 name: "editCalendarEvent",
-                description: "Upraví existující událost v Google kalendáři. Pro hlasový příkaz 'edit Vlada/Max/Avi/Ulinka/Beatrix den ...' nejdřív najdi správnou událost pomocí getCalendarEvents a potom pošli změněná pole sem.",
+                description: "Upraví existující událost v Google kalendáři. Pro hlasový příkaz 'edit Vladimir/Vlada/Ursula/Ulinka/Max/Avi/Beatrix den ...' nejdřív najdi správnou událost pomocí getCalendarEvents a potom pošli změněná pole sem.",
                 parameters: {
                   type: Type.OBJECT,
                   properties: {
                     eventId: { type: Type.STRING, description: "ID události, kterou chceš upravit" },
-                    calendarId: { type: Type.STRING, description: "ID kalendáře nebo jméno cílového kalendáře: Vlada, Max, Avi, Ulinka, Beatrix." },
-                    calendarName: { type: Type.STRING, description: "Jméno cílového kalendáře, pokud je známo: Vlada, Max, Avi, Ulinka, Beatrix." },
-                    personName: { type: Type.STRING, description: "Jméno osoby/cílového kalendáře, pokud je známo: Vlada, Max, Avi, Ulinka, Beatrix." },
+                    calendarId: { type: Type.STRING, description: `ID kalendáře nebo jméno cílového kalendáře: ${CALENDAR_TARGET_DESCRIPTION}.` },
+                    calendarName: { type: Type.STRING, description: `Jméno cílového kalendáře, pokud je známo: ${CALENDAR_TARGET_DESCRIPTION}.` },
+                    personName: { type: Type.STRING, description: `Jméno osoby/cílového kalendáře, pokud je známo: ${CALENDAR_TARGET_DESCRIPTION}.` },
                     summary: { type: Type.STRING, description: "Nový název události, pokud se má změnit." },
                     start: { type: Type.STRING, description: "Nový začátek události v ISO 8601 formátu, pokud se má změnit." },
                     end: { type: Type.STRING, description: "Nový konec události v ISO 8601 formátu, pokud se má změnit." },
@@ -813,6 +797,14 @@ export function useGeminiLive() {
                         throw new Error(data.error || res.statusText);
                       }
                       resultStr = data.result || "Baxter byl otevřen.";
+                      addChatMessage('assistant', resultStr);
+                    } else if (call.name === "callShaun") {
+                      const res = await fetch('/api/video/shaun', { method: 'POST' });
+                      const data = await res.json().catch(() => ({}));
+                      if (!res.ok || data.success === false) {
+                        throw new Error(data.error || res.statusText);
+                      }
+                      resultStr = data.result || "Video se Shaunem bylo spuštěno.";
                       addChatMessage('assistant', resultStr);
                     } else if (call.name === "sendAdvertToBaxter") {
                       const url = String(call.args.url || '').trim();
