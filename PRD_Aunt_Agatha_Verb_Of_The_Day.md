@@ -37,6 +37,8 @@ Agathina verze ma byt stejne klidna a skenovatelna, ale misto obrazu ukazuje slo
 - Ukazana slovesa se ukladaji do lokalni SQLite databaze.
 - Zkouseni pouziva jen slovesa, ktera uz byla nekdy ukazana.
 - Zdrojovy katalog sloves zustava ulozeny lokalne v databazi.
+- Zdrojovy katalog Agathy vychazi z lokalniho PDF `2878-nejfrekventovanejsi-nepravidelna-slovesa.pdf`.
+- Kazde sloveso ze zdrojoveho PDF ma mit ulozeny a zobrazeny cesky preklad.
 - Pri nedostupnosti weboveho zdroje se pouzije posledni ulozeny katalog; az jako posledni zachrana vestavena zaloha.
 - Karta nesmi otevirat Gemini, prohlizec ani externi aplikaci.
 
@@ -86,6 +88,7 @@ Pouzit existujici lokalni SQLite databazi `.auth/jeeves-usage.sqlite`.
 Tabulky:
 
 - `agatha_verb_catalog`: lokalni katalog sloves ze zdroje.
+  - uklada infinitiv, preteritum, perfektum/participium, cesky preklad, zdroj a cas importu.
 - `agatha_daily_verbs`: denni vybrane a ukazane sloveso.
 - `agatha_known_verbs`: slovesa dostupna pro opakovani.
 - `agatha_review_attempts`: napsane odpovedi a vysledek.
@@ -112,7 +115,5 @@ Tabulky:
 ## Mimo rozsah
 
 - Plnohodnotny AI chat s Agathou.
-- Preklady vsech sloves do cestiny.
 - Hlasove zkouseni.
 - Synchronizace mezi zarizenimi.
-

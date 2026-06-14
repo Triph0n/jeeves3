@@ -149,6 +149,49 @@ Missing signature:
 }
 ```
 
+## Merge PDF
+
+```text
+POST /api/jobs/merge-pdf
+Content-Type: multipart/form-data
+```
+
+Fields:
+
+- `files`: one or more uploaded PDF files.
+- `plan`: optional JSON merge plan. If omitted, Baxter merges full PDFs in upload order.
+
+Example plan:
+
+```json
+{
+  "parts": [
+    {"file_index": 0, "start_page": 1, "end_page": 2},
+    {"file_index": 1},
+    {"file_index": 0, "start_page": 3, "end_page": 3}
+  ]
+}
+```
+
+Successful response:
+
+```json
+{
+  "status": "done",
+  "message": "PDF soubory byly spojeny.",
+  "outputs": [
+    "C:\\Users\\Vladimir\\Desktop\\Baxter\\Hotovo\\document_merged.pdf"
+  ],
+  "output_urls": [
+    "/api/done/document_merged.pdf"
+  ],
+  "details": {
+    "processed": 3,
+    "sources": 2
+  }
+}
+```
+
 ## Status Values
 
 - `done`: task completed.

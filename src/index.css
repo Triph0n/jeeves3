@@ -252,6 +252,23 @@ body {
   opacity: 1;
 }
 
+.jeeves-club .jeeves-overview-black-text .baxter-advert-button {
+  color: #d6d3d1 !important;
+}
+
+.jeeves-club .jeeves-overview-black-text .baxter-advert-button[data-state="sent"] {
+  color: #6ee7b7 !important;
+}
+
+.jeeves-club .jeeves-overview-black-text .baxter-advert-button[data-state="error"] {
+  color: #fca5a5 !important;
+}
+
+.jeeves-club .jeeves-overview-black-text .baxter-advert-button svg {
+  color: inherit !important;
+  stroke: currentColor;
+}
+
 .jeeves-club .shadow-lg {
   box-shadow: 0 8px 18px rgba(42, 21, 8, 0.18);
 }

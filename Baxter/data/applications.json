@@ -1,5 +1,29 @@
 [
   {
+    "id": "b20fd5acf8d8499e96ebb44c109bf180",
+    "created_at": "2026-06-11T08:21:26",
+    "source_url": "https://www.muvac.com/en/vacancy/luzerner-sinfonieorchester-31ndn591",
+    "status": "needs_input",
+    "message": "Připravil jsem PDF a emailový koncept. Zkontroluj prosím chybějící pole: email.",
+    "school_name": "Muvac",
+    "job_title": "Muvac – Cello tutti (1) – permanent by Luzerner Sinfonieorchester",
+    "contact_person": "",
+    "salutation": "Sehr geehrte Damen und Herren,",
+    "email": "",
+    "subject": "Bewerbung als Muvac – Cello tutti (1) – permanent by Luzerner Sinfonieorchester - Muvac",
+    "pdf_path": "C:\\Users\\Vladimir\\Desktop\\Baxter\\Hotovo\\Bewerbung_Muvac_20260611.pdf",
+    "draft_path": "C:\\Users\\Vladimir\\Desktop\\Baxter\\Koncepty\\Muvac_20260611_0821.txt",
+    "draft_url": "https://mail.google.com/mail/u/0/#drafts",
+    "compose_url": "https://mail.google.com/mail/u/0/?view=cm&fs=1&su=Bewerbung+als+Muvac+%E2%80%93+Cello+tutti+%281%29+%E2%80%93+permanent+by+Luzerner+Sinfonieorchester+-+Muvac&body=Sehr+geehrte+Damen+und+Herren%2C%0A%0AIhr+Inserat+betreffend+die+Stelle+als+Muvac+%E2%80%93+Cello+tutti+%281%29+%E2%80%93+permanent+by+Luzerner+Sinfonieorchester+an+der+Muvac+hat+mich+sehr+angesprochen.+Ich+bin+%C3%BCberzeugt+Ihre+Erwartungen+bestens+zu+erf%C3%BCllen.+Hier+schicke+ich+meine+Bewerbungsunterlagen.%0A%0AFreundliche+Gr%C3%BCsse%0AVladimir+Fortin%0A",
+    "details": {
+      "materials_pdf": "",
+      "source_title": "Muvac – Cello tutti (1) – permanent by Luzerner Sinfonieorchester",
+      "missing": [
+        "email"
+      ]
+    }
+  },
+  {
     "id": "df3834782fb14e5dadbc1dfd1ae3a1e5",
     "created_at": "2026-05-27T03:47:42",
     "source_url": "https://www.musikzeitung.ch/stellen/lehrperson-fuer-cello",

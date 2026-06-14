@@ -18,3 +18,10 @@
 - [x] Preserve Aunt Agatha's portrait.
 - [x] Make the companion button large enough for its label.
 - [x] Run verification.
+
+## PDF Verb Source Update
+
+- [x] Replace Agatha's web verb source with the local PDF-derived catalog.
+- [x] Store and return Czech translations from `agatha_verb_catalog`.
+- [x] Verify the new catalog contains 68 PDF verbs.
+- [x] Run final validation.

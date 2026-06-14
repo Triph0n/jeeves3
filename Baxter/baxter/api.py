@@ -7,7 +7,7 @@ from urllib.parse import quote
 
 import fitz
 import shutil
-from fastapi import FastAPI, Request, UploadFile, File
+from fastapi import FastAPI, Request, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -16,10 +16,11 @@ from starlette.responses import FileResponse
 
 from . import __version__
 from .config import CONFIG, resolve_signature_path
-from .folders import folder_status, list_files_by_suffix, validate_folders
+from .folders import folder_status, list_files_by_suffix, unique_path, validate_folders
 from .image_to_pdf import IMAGE_SUFFIXES, convert_images_to_pdf
 from .inbox_triage import load_inbox_triage, store_gmail_brief_as_triage
 from .jobs import manual_sign_jobs
+from .merge_pdf import PDF_SUFFIXES as MERGE_PDF_SUFFIXES, merge_pdfs, parse_merge_parts
 from .models import JobResult
 from .applications import discard_application, get_application, prepare_application_from_url, recent_applications
 from .pdf_signer import PDF_SUFFIXES, complete_manual_signature, signature_exists, start_manual_signing
@@ -351,6 +352,11 @@ def sign_pdf_page(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(request, "sign_pdf.html", {"config": CONFIG})
 
 
+@app.get("/tools/merge-pdf", response_class=HTMLResponse)
+def merge_pdf_page(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(request, "merge_pdf.html", {"config": CONFIG})
+
+
 @app.post("/api/jobs/image-to-pdf")
 def image_to_pdf_job(files: list[UploadFile] = File(...)) -> JSONResponse:
     saved_filenames = []
@@ -408,6 +414,41 @@ def sign_pdf_job(request: Request, files: list[UploadFile] = File(...)) -> JSONR
         return json_result(JobResult(status="failed", message="Nebyl vybrán žádný PDF soubor."))
         
     return JSONResponse(enrich_outputs_with_urls(start_manual_signing(CONFIG, base_url=base_url, filename=saved_filenames[0]).to_dict()))
+
+
+@app.post("/api/jobs/merge-pdf")
+def merge_pdf_job(files: list[UploadFile] = File(...), plan: str | None = Form(None)) -> JSONResponse:
+    saved_paths: list[Path] = []
+    for upload in files:
+        if not upload.filename:
+            continue
+        filename = Path(upload.filename).name
+        if Path(filename).suffix.casefold() not in MERGE_PDF_SUFFIXES:
+            _delete_paths(saved_paths)
+            return json_result(JobResult(status="failed", message="Merge PDF přijímá pouze PDF soubory."))
+        path = unique_path(CONFIG.input_dir / filename)
+        with open(path, "wb") as out:
+            shutil.copyfileobj(upload.file, out)
+        saved_paths.append(path)
+
+    if not saved_paths:
+        return json_result(JobResult(status="failed", message="Nebyly vybrány žádné PDF soubory."))
+
+    try:
+        parts = parse_merge_parts(json.loads(plan)) if plan else None
+    except (json.JSONDecodeError, ValueError) as exc:
+        _delete_paths(saved_paths)
+        return json_result(JobResult(status="failed", message=str(exc)))
+
+    return JSONResponse(enrich_outputs_with_urls(merge_pdfs(saved_paths, parts=parts, config=CONFIG).to_dict()))
+
+
+def _delete_paths(paths: list[Path]) -> None:
+    for path in paths:
+        try:
+            path.unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 @app.get("/api/signature", response_model=None)

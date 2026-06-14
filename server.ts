@@ -11,6 +11,7 @@ import fsSync from "fs";
 import { createRequire } from "module";
 import * as cheerio from "cheerio";
 import { spawn } from "child_process";
+import { resolveFamilyCalendar } from "./src/lib/familyCalendars";
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -31,9 +32,14 @@ const DEFAULT_WEATHER_LOCATION = {
 const MET_USER_AGENT = "Jeeves 3.0 weather widget/1.0";
 const BROWSER_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 const USAGE_TIME_ZONE = process.env.JEEVES_USAGE_TIME_ZONE || "Europe/Zurich";
+const GOOGLE_CALENDAR_TIME_ZONE = process.env.JEEVES_CALENDAR_TIME_ZONE || "Europe/Prague";
 const GOOGLE_CALENDAR_READONLY_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
 const GOOGLE_CALENDAR_EVENTS_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const GOOGLE_GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
+const REQUIRED_GOOGLE_CALENDAR_SCOPES = [
+  GOOGLE_CALENDAR_READONLY_SCOPE,
+  GOOGLE_CALENDAR_EVENTS_SCOPE,
+];
 const CELLO_TERMS = ["cello", "violoncello", "violoncelle", "violoncelo"];
 const MKZ_JOBS_URL = "https://www.stadt-zuerich.ch/mkz/de/ueber-mkz/jobs.html?search=q%3D%26stellentyp%3D%26dienstabteilung%3DMusikschule%2BKonservatorium%2BZ%25C3%25BCrich%26beschaeftigungsgrad%3D%26lang%3Dde%26compResource%3D%252Fcontent%252Fbetriebssites%252Fmkz%252Fde%252Fueber-mkz%252Fjobs%252Fjcr%253Acontent%252Fmainparsys%252Fjobsearch%26variant%3Ddefault%26limit%3D1";
 const DISCORD_LISTING_URL = "https://discord.com/channels/@me/1505505323723788329/1505854691026927686";
@@ -42,14 +48,97 @@ const DISCORD_LISTING_MESSAGE_ID = "1505854691026927686";
 const MET_COLLECTION_API_URL = "https://collectionapi.metmuseum.org/public/collection/v1";
 const ARTWORK_OF_THE_DAY_TIME_ZONE = process.env.JEEVES_ARTWORK_TIME_ZONE || "Europe/Zurich";
 const AGATHA_TIME_ZONE = process.env.JEEVES_AGATHA_TIME_ZONE || "Asia/Jerusalem";
-const AGATHA_VERB_SOURCE_URL = "https://www.verbtime.com/en/verbtables/german/list_strong.html";
+const AGATHA_VERB_SOURCE_URL = "file:///C:/Users/Vladimir/Downloads/2878-nejfrekventovanejsi-nepravidelna-slovesa.pdf";
 const NETFLIX_BROWSE_URL = "https://www.netflix.com/browse";
 const NETFLIX_SEARCH_URL = "https://www.netflix.com/search";
+const NETFLIX_PROFILES_GATE_URL = "https://www.netflix.com/ProfilesGate";
+const NETFLIX_SWITCH_PROFILE_URL = "https://www.netflix.com/SwitchProfile";
+const NETFLIX_PROFILE_NAME = process.env.NETFLIX_PROFILE_NAME || "V";
+const NETFLIX_PROFILE_TOKEN = process.env.NETFLIX_PROFILE_TOKEN || "";
 const BAXTER_URL = "http://127.0.0.1:8765";
 const BAXTER_HEALTH_URL = `${BAXTER_URL}/api/health`;
 const BAXTER_ROOT = path.join(process.cwd(), "Baxter");
 const BAXTER_PYTHON = path.join(BAXTER_ROOT, ".venv", "Scripts", "python.exe");
-const AGATHA_VERBS = [
+type AgathaCatalogVerb = {
+  id: string;
+  infinitive: string;
+  translationCs: string;
+  present3?: string;
+  preterite: string;
+  perfect: string;
+  example?: string;
+};
+const AGATHA_PDF_VERBS: AgathaCatalogVerb[] = [
+  { id: "backen", infinitive: "backen", preterite: "backte", perfect: "hat gebacken", translationCs: "péct" },
+  { id: "beginnen", infinitive: "beginnen", preterite: "begann", perfect: "hat begonnen", translationCs: "začít" },
+  { id: "bieten", infinitive: "bieten", preterite: "bot", perfect: "hat geboten", translationCs: "nabídnout, nabízet" },
+  { id: "bitten", infinitive: "bitten", preterite: "bat", perfect: "hat gebeten", translationCs: "prosit" },
+  { id: "bleiben", infinitive: "bleiben", preterite: "blieb", perfect: "ist geblieben", translationCs: "zůstat" },
+  { id: "bringen", infinitive: "bringen", preterite: "brachte", perfect: "hat gebracht", translationCs: "přinést, zavést" },
+  { id: "denken", infinitive: "denken", preterite: "dachte", perfect: "hat gedacht", translationCs: "myslet" },
+  { id: "empfehlen", infinitive: "empfehlen", preterite: "empfahl", perfect: "hat empfohlen", translationCs: "doporučit" },
+  { id: "essen", infinitive: "essen", preterite: "aß", perfect: "hat gegessen", translationCs: "jíst" },
+  { id: "fahren", infinitive: "fahren", preterite: "fuhr", perfect: "ist gefahren", translationCs: "jet" },
+  { id: "fallen", infinitive: "fallen", preterite: "fiel", perfect: "ist gefallen", translationCs: "padat, spadnout" },
+  { id: "finden", infinitive: "finden", preterite: "fand", perfect: "hat gefunden", translationCs: "najít, shledávat" },
+  { id: "fliegen", infinitive: "fliegen", preterite: "flog", perfect: "ist geflogen", translationCs: "letět" },
+  { id: "frieren", infinitive: "frieren", preterite: "fror", perfect: "hat gefroren", translationCs: "mrznout" },
+  { id: "geben", infinitive: "geben", preterite: "gab", perfect: "hat gegeben", translationCs: "dát" },
+  { id: "gehen", infinitive: "gehen", preterite: "ging", perfect: "ist gegangen", translationCs: "jít" },
+  { id: "genießen", infinitive: "genießen", preterite: "genoss", perfect: "hat genossen", translationCs: "užívat si, užít si" },
+  { id: "gewinnen", infinitive: "gewinnen", preterite: "gewann", perfect: "hat gewonnen", translationCs: "získat, vyhrát" },
+  { id: "haben", infinitive: "haben", preterite: "hatte", perfect: "hat gehabt", translationCs: "mít" },
+  { id: "halten", infinitive: "halten", preterite: "hielt", perfect: "hat gehalten", translationCs: "držet" },
+  { id: "heißen", infinitive: "heißen", preterite: "hieß", perfect: "hat geheißen", translationCs: "jmenovat se" },
+  { id: "helfen", infinitive: "helfen", preterite: "half", perfect: "hat geholfen", translationCs: "pomoct" },
+  { id: "kennen", infinitive: "kennen", preterite: "kannte", perfect: "hat gekannt", translationCs: "znát" },
+  { id: "kommen", infinitive: "kommen", preterite: "kam", perfect: "ist gekommen", translationCs: "přijít, přijet" },
+  { id: "lassen", infinitive: "lassen", preterite: "ließ", perfect: "hat gelassen", translationCs: "nechat" },
+  { id: "laufen", infinitive: "laufen", preterite: "lief", perfect: "ist gelaufen", translationCs: "běžet, běhat" },
+  { id: "leihen", infinitive: "leihen", preterite: "lieh", perfect: "hat geliehen", translationCs: "půjčit" },
+  { id: "lesen", infinitive: "lesen", preterite: "las", perfect: "hat gelesen", translationCs: "číst" },
+  { id: "liegen", infinitive: "liegen", preterite: "lag", perfect: "hat gelegen", translationCs: "ležet" },
+  { id: "lügen", infinitive: "lügen", preterite: "log", perfect: "hat gelogen", translationCs: "lhát" },
+  { id: "nehmen", infinitive: "nehmen", preterite: "nahm", perfect: "hat genommen", translationCs: "vzít" },
+  { id: "nennen", infinitive: "nennen", preterite: "nannte", perfect: "hat genannt", translationCs: "jmenovat, nazývat" },
+  { id: "reiten", infinitive: "reiten", preterite: "ritt", perfect: "ist geritten", translationCs: "jezdit na koni" },
+  { id: "rufen", infinitive: "rufen", preterite: "rief", perfect: "hat gerufen", translationCs: "volat, zvolat" },
+  { id: "scheinen", infinitive: "scheinen", preterite: "schien", perfect: "hat geschienen", translationCs: "zdát se" },
+  { id: "schlafen", infinitive: "schlafen", preterite: "schlief", perfect: "hat geschlafen", translationCs: "spát" },
+  { id: "schlagen", infinitive: "schlagen", preterite: "schlug", perfect: "hat geschlagen", translationCs: "bít, udeřit" },
+  { id: "schließen", infinitive: "schließen", preterite: "schloss", perfect: "hat geschlossen", translationCs: "zavřít, zamknout" },
+  { id: "schmeißen", infinitive: "schmeißen", preterite: "schmiss", perfect: "hat geschmissen", translationCs: "hodit, házet" },
+  { id: "schneiden", infinitive: "schneiden", preterite: "schnitt", perfect: "hat geschnitten", translationCs: "krájet" },
+  { id: "schreiben", infinitive: "schreiben", preterite: "schrieb", perfect: "hat geschrieben", translationCs: "psát" },
+  { id: "schreien", infinitive: "schreien", preterite: "schrie", perfect: "hat geschrien", translationCs: "křičet" },
+  { id: "schweigen", infinitive: "schweigen", preterite: "schwieg", perfect: "hat geschwiegen", translationCs: "mlčet" },
+  { id: "schwimmen", infinitive: "schwimmen", preterite: "schwamm", perfect: "ist geschwommen", translationCs: "plavat" },
+  { id: "sehen", infinitive: "sehen", preterite: "sah", perfect: "hat gesehen", translationCs: "vidět" },
+  { id: "sein", infinitive: "sein", preterite: "war", perfect: "ist gewesen", translationCs: "být" },
+  { id: "singen", infinitive: "singen", preterite: "sang", perfect: "hat gesungen", translationCs: "zpívat" },
+  { id: "sitzen", infinitive: "sitzen", preterite: "saß", perfect: "hat gesessen", translationCs: "sedět" },
+  { id: "sprechen", infinitive: "sprechen", preterite: "sprach", perfect: "hat gesprochen", translationCs: "mluvit" },
+  { id: "springen", infinitive: "springen", preterite: "sprang", perfect: "ist gesprungen", translationCs: "skákat" },
+  { id: "stehen", infinitive: "stehen", preterite: "stand", perfect: "hat gestanden", translationCs: "stát" },
+  { id: "stehlen", infinitive: "stehlen", preterite: "stahl", perfect: "hat gestohlen", translationCs: "ukrást" },
+  { id: "steigen", infinitive: "steigen", preterite: "stieg", perfect: "ist gestiegen", translationCs: "stoupat" },
+  { id: "sterben", infinitive: "sterben", preterite: "starb", perfect: "ist gestorben", translationCs: "zemřít" },
+  { id: "stinken", infinitive: "stinken", preterite: "stank", perfect: "hat gestunken", translationCs: "smrdět" },
+  { id: "streiten", infinitive: "streiten", preterite: "stritt", perfect: "hat gestritten", translationCs: "hádat se" },
+  { id: "tragen", infinitive: "tragen", preterite: "trug", perfect: "hat getragen", translationCs: "nést, nosit" },
+  { id: "treffen", infinitive: "treffen", preterite: "traf", perfect: "hat getroffen", translationCs: "potkat" },
+  { id: "trinken", infinitive: "trinken", preterite: "trank", perfect: "hat getrunken", translationCs: "pít" },
+  { id: "tun", infinitive: "tun", preterite: "tat", perfect: "hat getan", translationCs: "dělat" },
+  { id: "vergessen", infinitive: "vergessen", preterite: "vergaß", perfect: "hat vergessen", translationCs: "zapomenout" },
+  { id: "verlieren", infinitive: "verlieren", preterite: "verlor", perfect: "hat verloren", translationCs: "ztratit" },
+  { id: "wachsen", infinitive: "wachsen", preterite: "wuchs", perfect: "ist gewachsen", translationCs: "růst" },
+  { id: "waschen", infinitive: "waschen", preterite: "wusch", perfect: "hat gewaschen", translationCs: "umývat" },
+  { id: "werden", infinitive: "werden", preterite: "wurde", perfect: "ist geworden", translationCs: "stát se" },
+  { id: "werfen", infinitive: "werfen", preterite: "warf", perfect: "hat geworfen", translationCs: "hodit, házet" },
+  { id: "ziehen", infinitive: "ziehen", preterite: "zog", perfect: "hat gezogen", translationCs: "táhnout" },
+  { id: "zwingen", infinitive: "zwingen", preterite: "zwang", perfect: "hat gezwungen", translationCs: "nutit" },
+];
+const AGATHA_VERBS: AgathaCatalogVerb[] = [
   { id: "gehen", infinitive: "gehen", translationCs: "jít", present3: "geht", preterite: "ging", perfect: "ist gegangen", example: "Sie ist gestern nach Hause gegangen." },
   { id: "sehen", infinitive: "sehen", translationCs: "vidět", present3: "sieht", preterite: "sah", perfect: "hat gesehen", example: "Er hat den Film schon gesehen." },
   { id: "kommen", infinitive: "kommen", translationCs: "přijít, přijíždět", present3: "kommt", preterite: "kam", perfect: "ist gekommen", example: "Meine Tante ist um acht gekommen." },
@@ -153,6 +242,7 @@ const getUsageDb = () => {
         infinitive TEXT NOT NULL,
         preterite TEXT NOT NULL,
         participle TEXT NOT NULL,
+        translation_cs TEXT NOT NULL DEFAULT '',
         source_url TEXT NOT NULL,
         imported_at TEXT NOT NULL
       );
@@ -187,6 +277,11 @@ const getUsageDb = () => {
         created_at TEXT NOT NULL
       );
     `);
+
+    const agathaCatalogColumns = usageDb.prepare("PRAGMA table_info(agatha_verb_catalog)").all() as any[];
+    if (!agathaCatalogColumns.some(column => column.name === "translation_cs")) {
+      usageDb.exec("ALTER TABLE agatha_verb_catalog ADD COLUMN translation_cs TEXT NOT NULL DEFAULT ''");
+    }
   }
 
   return usageDb;
@@ -390,23 +485,41 @@ const openUrlInWindows = (url: string) => {
 
 const buildNetflixUrl = (title?: string) => {
   const cleanTitle = String(title || "").trim().replace(/^film\s+/i, "").trim();
-  if (!cleanTitle) return { url: NETFLIX_BROWSE_URL, title: "" };
+  const targetUrl = cleanTitle
+    ? (() => {
+        const url = new URL(NETFLIX_SEARCH_URL);
+        url.searchParams.set("q", cleanTitle);
+        return url.toString();
+      })()
+    : NETFLIX_BROWSE_URL;
 
-  const url = new URL(NETFLIX_SEARCH_URL);
-  url.searchParams.set("q", cleanTitle);
-  return { url: url.toString(), title: cleanTitle };
+  if (!NETFLIX_PROFILE_TOKEN) {
+    const profileGateUrl = new URL(NETFLIX_PROFILES_GATE_URL);
+    profileGateUrl.searchParams.set("nextpage", targetUrl);
+    return { url: profileGateUrl.toString(), title: cleanTitle, profileName: NETFLIX_PROFILE_NAME, profileSelected: false };
+  }
+
+  const profileUrl = new URL(NETFLIX_SWITCH_PROFILE_URL);
+  profileUrl.searchParams.set("tkn", NETFLIX_PROFILE_TOKEN);
+  profileUrl.searchParams.set("nextpage", targetUrl);
+  return { url: profileUrl.toString(), title: cleanTitle, profileName: NETFLIX_PROFILE_NAME, profileSelected: true };
 };
 
 const openNetflix = (title?: string) => {
-  const { url, title: cleanTitle } = buildNetflixUrl(title);
+  const { url, title: cleanTitle, profileSelected } = buildNetflixUrl(title);
+  const profilePhrase = profileSelected
+    ? `na profilu ${NETFLIX_PROFILE_NAME}`
+    : `s výběrem profilu ${NETFLIX_PROFILE_NAME}`;
   const now = Date.now();
   if (url === lastNetflixUrl && now - lastNetflixOpenAt < 3000) {
     return {
       url,
       title: cleanTitle,
+      profileName: NETFLIX_PROFILE_NAME,
+      profileSelected,
       result: cleanTitle
-        ? `Netflix se už otevírá s hledáním: ${cleanTitle}`
-        : `Netflix se už otevírá: ${NETFLIX_BROWSE_URL}`,
+        ? `Netflix se už otevírá ${profilePhrase} s hledáním: ${cleanTitle}`
+        : `Netflix se už otevírá ${profilePhrase}: ${NETFLIX_BROWSE_URL}`,
     };
   }
 
@@ -417,9 +530,11 @@ const openNetflix = (title?: string) => {
   return {
     url,
     title: cleanTitle,
+    profileName: NETFLIX_PROFILE_NAME,
+    profileSelected,
     result: cleanTitle
-      ? `Otevřel jsem Netflix a vyhledal "${cleanTitle}".`
-      : `Otevřel jsem Netflix: ${NETFLIX_BROWSE_URL}`,
+      ? `Otevřel jsem Netflix ${profilePhrase} a vyhledal "${cleanTitle}".`
+      : `Otevřel jsem Netflix ${profilePhrase}: ${NETFLIX_BROWSE_URL}`,
   };
 };
 
@@ -597,83 +712,80 @@ const fallbackAgathaVerbPayload = (verb: typeof AGATHA_VERBS[number], dayKey?: s
   translationCs: verb.translationCs,
   present3: verb.present3,
   preterite: verb.preterite,
-  perfect: stripGermanAuxiliary(verb.perfect),
+  perfect: verb.perfect,
   example: verb.example,
   sourceUrl: "fallback",
   dayKey,
 });
 
-const parseAgathaVerbCatalog = (html: string) => {
-  const $ = cheerio.load(html);
-  const text = $("body").text();
-  const listStart = text.indexOf("This list contains the strong German verbs.");
-  const listEnd = text.indexOf("Support:", listStart);
-  const listText = text.slice(
-    listStart === -1 ? 0 : listStart,
-    listEnd === -1 ? undefined : listEnd
-  );
-
-  const rows = new Map<string, { id: string; infinitive: string; preterite: string; participle: string }>();
-  for (const rawLine of listText.split(/\r?\n/)) {
-    const line = rawLine.replace(/\s+/g, " ").trim();
-    const match = line.match(/^([A-Za-zÄÖÜäöüß]+)\s+([A-Za-zÄÖÜäöüß]+)\s+([A-Za-zÄÖÜäöüß]+)$/);
-    if (!match) continue;
-
-    const [, infinitive, preterite, participle] = match;
-    if (infinitive.length < 3 || preterite.length < 2 || participle.length < 3) continue;
-    rows.set(infinitive, {
-      id: infinitive,
-      infinitive,
-      preterite,
-      participle,
-    });
-  }
-
-  return [...rows.values()];
-};
-
 const importAgathaVerbCatalog = async ({ force = false } = {}) => {
   const db = getUsageDb();
+  const verbs = AGATHA_PDF_VERBS;
   const existing = db.prepare("SELECT COUNT(*) AS count FROM agatha_verb_catalog").get() as any;
-  if (!force && Number(existing?.count || 0) >= 50) {
+  const lastImport = db.prepare(`
+    SELECT source_url, verb_count
+    FROM agatha_catalog_imports
+    ORDER BY imported_at DESC
+    LIMIT 1
+  `).get() as any;
+  const missingTranslations = db.prepare(`
+    SELECT COUNT(*) AS count
+    FROM agatha_verb_catalog
+    WHERE COALESCE(translation_cs, '') = ''
+  `).get() as any;
+
+  if (
+    !force
+    && Number(existing?.count || 0) === verbs.length
+    && lastImport?.source_url === AGATHA_VERB_SOURCE_URL
+    && Number(missingTranslations?.count || 0) === 0
+  ) {
     return { imported: false, count: Number(existing.count || 0), sourceUrl: AGATHA_VERB_SOURCE_URL };
   }
 
   try {
-    const response = await fetch(AGATHA_VERB_SOURCE_URL, {
-      headers: {
-        "Accept": "text/html,application/xhtml+xml",
-        "Accept-Language": "de,en;q=0.8,cs;q=0.7",
-        "User-Agent": "Jeeves 3.0 Aunt Agatha verb importer/1.0",
-      },
-    });
-    if (!response.ok) throw new Error(`Verb source error: ${response.status}`);
-
-    const verbs = parseAgathaVerbCatalog(await response.text());
     if (verbs.length < 50) throw new Error(`Import našel jen ${verbs.length} sloves.`);
 
     const importedAt = new Date().toISOString();
     const insert = db.prepare(`
-      INSERT INTO agatha_verb_catalog (verb_id, infinitive, preterite, participle, source_url, imported_at)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO agatha_verb_catalog (verb_id, infinitive, preterite, participle, translation_cs, source_url, imported_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(verb_id) DO UPDATE SET
         infinitive = excluded.infinitive,
         preterite = excluded.preterite,
         participle = excluded.participle,
+        translation_cs = excluded.translation_cs,
         source_url = excluded.source_url,
         imported_at = excluded.imported_at
     `);
-    for (const verb of verbs) {
-      insert.run(verb.id, verb.infinitive, verb.preterite, verb.participle, AGATHA_VERB_SOURCE_URL, importedAt);
-    }
 
-    db.prepare(`
-      INSERT INTO agatha_catalog_imports (source_url, imported_at, verb_count)
-      VALUES (?, ?, ?)
-      ON CONFLICT(source_url) DO UPDATE SET
-        imported_at = excluded.imported_at,
-        verb_count = excluded.verb_count
-    `).run(AGATHA_VERB_SOURCE_URL, importedAt, verbs.length);
+    db.exec("BEGIN TRANSACTION");
+    try {
+      db.prepare("DELETE FROM agatha_verb_catalog").run();
+      for (const verb of verbs) {
+        insert.run(
+          verb.id,
+          verb.infinitive,
+          verb.preterite,
+          verb.perfect,
+          verb.translationCs,
+          AGATHA_VERB_SOURCE_URL,
+          importedAt
+        );
+      }
+
+      db.prepare(`
+        INSERT INTO agatha_catalog_imports (source_url, imported_at, verb_count)
+        VALUES (?, ?, ?)
+        ON CONFLICT(source_url) DO UPDATE SET
+          imported_at = excluded.imported_at,
+          verb_count = excluded.verb_count
+      `).run(AGATHA_VERB_SOURCE_URL, importedAt, verbs.length);
+      db.exec("COMMIT");
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
 
     return { imported: true, count: verbs.length, sourceUrl: AGATHA_VERB_SOURCE_URL };
   } catch (error: any) {
@@ -685,7 +797,7 @@ const importAgathaVerbCatalog = async ({ force = false } = {}) => {
 const getAgathaCatalogRows = () => {
   const db = getUsageDb();
   const rows = db.prepare(`
-    SELECT verb_id, infinitive, preterite, participle, source_url, imported_at
+    SELECT verb_id, infinitive, preterite, participle, translation_cs, source_url, imported_at
     FROM agatha_verb_catalog
     ORDER BY infinitive ASC
   `).all() as any[];
@@ -696,7 +808,8 @@ const getAgathaCatalogRows = () => {
     verb_id: verb.id,
     infinitive: verb.infinitive,
     preterite: verb.preterite,
-    participle: stripGermanAuxiliary(verb.perfect),
+    participle: verb.perfect,
+    translation_cs: verb.translationCs,
     source_url: "fallback",
     imported_at: "",
   }));
@@ -724,7 +837,7 @@ const getAgathaVerbById = (verbId: unknown) => {
   const id = String(verbId || "");
   const db = getUsageDb();
   const row = db.prepare(`
-    SELECT verb_id, infinitive, preterite, participle, source_url
+    SELECT verb_id, infinitive, preterite, participle, translation_cs, source_url
     FROM agatha_verb_catalog
     WHERE verb_id = ?
   `).get(id) as any;
@@ -733,7 +846,7 @@ const getAgathaVerbById = (verbId: unknown) => {
     return {
       id: row.verb_id,
       infinitive: row.infinitive,
-      translationCs: "",
+      translationCs: row.translation_cs || "",
       present3: "",
       preterite: row.preterite,
       perfect: row.participle,
@@ -752,8 +865,8 @@ const getAgathaVerbPayload = (verb: any, dayKey?: string) => ({
   translationCs: verb.translationCs || "",
   present3: verb.present3 || "",
   preterite: verb.preterite,
-  perfect: stripGermanAuxiliary(verb.perfect),
-  example: verb.example || `${verb.infinitive} - ${verb.preterite} - ${stripGermanAuxiliary(verb.perfect)}`,
+  perfect: verb.perfect,
+  example: verb.example || `${verb.infinitive} - ${verb.preterite} - ${verb.perfect}`,
   sourceUrl: verb.sourceUrl || AGATHA_VERB_SOURCE_URL,
   dayKey,
 });
@@ -1279,12 +1392,6 @@ const sendAdvertToBaxter = async (advertUrl: string) => {
   return enriched;
 };
 
-const startOfLocalDay = (date = new Date()) => {
-  const day = new Date(date);
-  day.setHours(0, 0, 0, 0);
-  return day;
-};
-
 const toAbsoluteUrl = (url: string, baseUrl: string) => {
   try {
     return new URL(url, baseUrl).toString();
@@ -1406,6 +1513,9 @@ const hasUsableGoogleTokens = (tokens: any) => {
 
 const hasAnyGoogleTokens = (tokens: any) => !!tokens?.refresh_token || !!tokens?.access_token;
 const hasGoogleScope = (tokens: any, scope: string) => String(tokens?.scope || "").split(/\s+/).includes(scope);
+const hasGoogleScopes = (tokens: any, scopes: string[]) => scopes.every(scope => hasGoogleScope(tokens, scope));
+const hasUsableCalendarTokens = (tokens: any) =>
+  hasUsableGoogleTokens(tokens) && hasGoogleScopes(tokens, REQUIRED_GOOGLE_CALENDAR_SCOPES);
 
 const storeTokens = async (tokens: any) => {
   const existingTokens = await readStoredTokens();
@@ -1485,10 +1595,12 @@ app.get("/api/auth/status", (req, res) => {
   readStoredTokens()
     .then((tokens) => {
       const cookieTokens = req.cookies.google_tokens ? JSON.parse(req.cookies.google_tokens) : null;
-      const connected = hasUsableGoogleTokens(tokens) || hasUsableGoogleTokens(cookieTokens);
+      const connected = hasUsableCalendarTokens(tokens) || hasUsableCalendarTokens(cookieTokens);
+      const hasTokens = hasAnyGoogleTokens(tokens) || hasAnyGoogleTokens(cookieTokens);
       res.json({
         connected,
-        reconnectRequired: !connected && (hasAnyGoogleTokens(tokens) || hasAnyGoogleTokens(cookieTokens)),
+        reconnectRequired: !connected && hasTokens,
+        missingCalendarWriteScope: hasTokens && !connected,
       });
     })
     .catch(() => res.json({ connected: false, reconnectRequired: true }));
@@ -1813,8 +1925,18 @@ app.post("/api/usage/live", (req, res) => {
 // Middleware to check auth
 const requireAuth = async (req: any, res: any, next: any) => {
   try {
+    const rejectReconnect = () => res.status(401).json({
+      error: "Google Calendar needs reconnect",
+      reconnectRequired: true,
+      missingCalendarWriteScope: true,
+    });
+
+    const storedTokens = await readStoredTokens();
     const storedClient = await getAuthenticatedClient();
     if (storedClient) {
+      if (!hasUsableCalendarTokens(storedTokens)) {
+        return rejectReconnect();
+      }
       req.oauth2Client = storedClient;
       return next();
     }
@@ -1824,8 +1946,8 @@ const requireAuth = async (req: any, res: any, next: any) => {
     }
 
     const tokens = JSON.parse(req.cookies.google_tokens);
-    if (!hasUsableGoogleTokens(tokens)) {
-      return res.status(401).json({ error: "Google Calendar needs reconnect", reconnectRequired: true });
+    if (!hasUsableCalendarTokens(tokens)) {
+      return rejectReconnect();
     }
 
     req.oauth2Client = getOAuth2Client();
@@ -1836,90 +1958,356 @@ const requireAuth = async (req: any, res: any, next: any) => {
   }
 };
 
+type CalendarDateParts = {
+  year: number;
+  month: number;
+  day: number;
+};
+
+type CalendarTimeParts = {
+  hour: number;
+  minute: number;
+};
+
+const padCalendarPart = (value: number) => String(value).padStart(2, "0");
+
+const getCalendarDatePartsInPrague = (date = new Date()): CalendarDateParts => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: GOOGLE_CALENDAR_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  return {
+    year: Number(parts.find(part => part.type === "year")?.value || date.getFullYear()),
+    month: Number(parts.find(part => part.type === "month")?.value || date.getMonth() + 1),
+    day: Number(parts.find(part => part.type === "day")?.value || date.getDate()),
+  };
+};
+
+const parseCalendarDateParts = (value: unknown): CalendarDateParts | null => {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return getCalendarDatePartsInPrague(value);
+  }
+
+  const text = String(value ?? "").trim();
+  const isoMatch = text.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (isoMatch) {
+    const [, year, month, day] = isoMatch;
+    return { year: Number(year), month: Number(month), day: Number(day) };
+  }
+
+  const compactMatch = text.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2}|\d{4})/);
+  if (compactMatch) {
+    const [, day, month, rawYear] = compactMatch;
+    const year = rawYear.length === 2 ? 2000 + Number(rawYear) : Number(rawYear);
+    return { year, month: Number(month), day: Number(day) };
+  }
+
+  return null;
+};
+
+const parseCalendarTimeParts = (value: unknown): CalendarTimeParts | null => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const hour = Math.trunc(value);
+    return hour >= 0 && hour <= 23 ? { hour, minute: 0 } : null;
+  }
+
+  const text = String(value ?? "").trim();
+  if (!text) return null;
+
+  const standaloneMatch = text.match(/^(\d{1,2})(?::(\d{1,2}))?$/);
+  const dateTimeMatch = text.match(/(?:T|\s)(\d{1,2})(?::(\d{1,2}))?(?::\d{1,2})?(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?$/i);
+  const match = standaloneMatch || dateTimeMatch;
+  if (!match) return null;
+
+  const hour = Number(match[1]);
+  const minute = match[2] === undefined ? 0 : Number(match[2]);
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return { hour, minute };
+};
+
+const isValidCalendarDate = (parts: CalendarDateParts) => {
+  const date = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
+  return date.getUTCFullYear() === parts.year
+    && date.getUTCMonth() === parts.month - 1
+    && date.getUTCDate() === parts.day;
+};
+
+const formatCalendarDateTime = (dateParts: CalendarDateParts, timeParts: CalendarTimeParts) =>
+  `${dateParts.year}-${padCalendarPart(dateParts.month)}-${padCalendarPart(dateParts.day)}T${padCalendarPart(timeParts.hour)}:${padCalendarPart(timeParts.minute)}:00`;
+
+const calendarDateTimeToComparable = (dateTime: string) => {
+  const match = dateTime.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!match) return Number.NaN;
+  const [, year, month, day, hour, minute] = match;
+  return Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
+};
+
+const getCalendarDateTimeParts = (dateTime: string) => {
+  const match = dateTime.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (!match) return null;
+  const [, year, month, day, hour, minute, second = "0"] = match;
+  return {
+    year: Number(year),
+    month: Number(month),
+    day: Number(day),
+    hour: Number(hour),
+    minute: Number(minute),
+    second: Number(second),
+  };
+};
+
+const getTimeZoneOffsetMs = (date: Date, timeZone: string) => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const partValue = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find(part => part.type === type)?.value || 0);
+  const zonedAsUtc = Date.UTC(
+    partValue("year"),
+    partValue("month") - 1,
+    partValue("day"),
+    partValue("hour"),
+    partValue("minute"),
+    partValue("second"),
+  );
+
+  return zonedAsUtc - date.getTime();
+};
+
+const pragueWallDateTimeToUtcDate = (dateTime: string) => {
+  const parts = getCalendarDateTimeParts(dateTime);
+  if (!parts) throw new Error("Neplatný čas kalendářního vyhledávání.");
+
+  const wallTime = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
+  let utcTime = wallTime;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    utcTime = wallTime - getTimeZoneOffsetMs(new Date(utcTime), GOOGLE_CALENDAR_TIME_ZONE);
+  }
+
+  return new Date(utcTime);
+};
+
+const normalizeCalendarQueryDateTime = (value: unknown, fallbackDateParts: CalendarDateParts, fallbackHour: number) =>
+  pragueWallDateTimeToUtcDate(
+    normalizeCalendarDateTime(value, parseCalendarDateParts(value) || fallbackDateParts, { hour: fallbackHour, minute: 0 })
+  ).toISOString();
+
+const addMinutesToCalendarDateTime = (dateTime: string, minutes: number) => {
+  const value = calendarDateTimeToComparable(dateTime);
+  const date = new Date(value + minutes * 60000);
+  return formatCalendarDateTime(
+    {
+      year: date.getUTCFullYear(),
+      month: date.getUTCMonth() + 1,
+      day: date.getUTCDate(),
+    },
+    {
+      hour: date.getUTCHours(),
+      minute: date.getUTCMinutes(),
+    }
+  );
+};
+
+const normalizeCalendarDateTime = (
+  value: unknown,
+  fallbackDateParts: CalendarDateParts,
+  fallbackTimeParts: CalendarTimeParts,
+) => {
+  const dateParts = parseCalendarDateParts(value) || fallbackDateParts;
+  const timeParts = parseCalendarTimeParts(value) || fallbackTimeParts;
+
+  if (!isValidCalendarDate(dateParts)) {
+    throw new Error("Neplatné datum kalendářní události.");
+  }
+
+  return formatCalendarDateTime(dateParts, timeParts);
+};
+
+const buildCalendarEventDateTime = (dateTime: string) => ({
+  dateTime,
+  timeZone: GOOGLE_CALENDAR_TIME_ZONE,
+});
+
+const resolveCalendarId = (calendarId: unknown) => {
+  const rawCalendarId = String(calendarId || "primary").trim();
+  return resolveFamilyCalendar(rawCalendarId)?.calendarId || rawCalendarId || "primary";
+};
+
+const normalizeCalendarEventTimes = (start: unknown, end: unknown) => {
+  const fallbackDateParts = parseCalendarDateParts(start)
+    || parseCalendarDateParts(end)
+    || getCalendarDatePartsInPrague();
+  const startDateTime = normalizeCalendarDateTime(start, fallbackDateParts, { hour: 9, minute: 0 });
+  let endDateTime = normalizeCalendarDateTime(end, parseCalendarDateParts(end) || parseCalendarDateParts(start) || fallbackDateParts, { hour: 10, minute: 0 });
+
+  if (!end || calendarDateTimeToComparable(endDateTime) <= calendarDateTimeToComparable(startDateTime)) {
+    endDateTime = addMinutesToCalendarDateTime(startDateTime, 60);
+  }
+
+  return {
+    start: buildCalendarEventDateTime(startDateTime),
+    end: buildCalendarEventDateTime(endDateTime),
+  };
+};
+
+const normalizeCalendarSingleEventTime = (value: unknown, fallbackHour: number) => {
+  const fallbackDateParts = parseCalendarDateParts(value) || getCalendarDatePartsInPrague();
+  const dateTime = normalizeCalendarDateTime(value, fallbackDateParts, { hour: fallbackHour, minute: 0 });
+  return buildCalendarEventDateTime(dateTime);
+};
+
+const getCalendarApiErrorReason = (error: any) => {
+  const reason = error.response?.data?.error
+    || error.response?.data?.error_description
+    || error.message
+    || "Calendar API error";
+  return typeof reason === "string" ? reason : JSON.stringify(reason);
+};
+
+const isCalendarReconnectError = (error: any, status: number, reason: string) => {
+  const errorText = [
+    reason,
+    error.message,
+    error.code,
+    error.response?.data?.error,
+    error.response?.data?.error_description,
+  ].filter(Boolean).map(String).join(" ").toLowerCase();
+
+  return status === 401
+    || status === 403
+    || errorText.includes("invalid_grant")
+    || errorText.includes("unauthorized_client")
+    || errorText.includes("invalid token");
+};
+
+const sendCalendarApiError = async (res: any, error: any) => {
+  const rawStatus = Number(error.response?.status || error.status || error.code || 500);
+  const status = rawStatus >= 400 && rawStatus < 600 ? rawStatus : 500;
+  const reason = getCalendarApiErrorReason(error);
+  const reconnectRequired = isCalendarReconnectError(error, status, reason);
+
+  if (reconnectRequired) {
+    res.clearCookie("google_tokens", { secure: true, sameSite: "none", httpOnly: true });
+    await fs.rm(TOKEN_FILE, { force: true }).catch((removeError) => {
+      console.error("Failed to remove invalid Google token", removeError);
+    });
+  }
+
+  res.status(reconnectRequired ? 401 : status).json({
+    error: reason,
+    reconnectRequired,
+  });
+};
+
 app.get("/api/calendar/list", requireAuth, async (req: any, res: any) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   try {
     const calendar = google.calendar({ version: "v3", auth: req.oauth2Client });
     const response = await calendar.calendarList.list();
     res.json(response.data.items);
   } catch (error: any) {
     console.error("Calendar API Error:", error.message, error.code, error.response?.status);
-    res.status(500).json({ error: error.message });
+    await sendCalendarApiError(res, error);
   }
 });
 
 app.get("/api/calendar/events", requireAuth, async (req: any, res: any) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   try {
     const { calendarId = "primary", timeMin, timeMax } = req.query;
-    const defaultTimeMin = startOfLocalDay();
+    const resolvedCalendarId = resolveCalendarId(calendarId);
+    const defaultDateParts = getCalendarDatePartsInPrague();
     const calendar = google.calendar({ version: "v3", auth: req.oauth2Client });
     const response = await calendar.events.list({
-      calendarId: calendarId as string,
-      timeMin: timeMin ? new Date(timeMin as string).toISOString() : defaultTimeMin.toISOString(),
-      timeMax: timeMax ? new Date(timeMax as string).toISOString() : undefined,
+      calendarId: resolvedCalendarId,
+      timeMin: timeMin
+        ? normalizeCalendarQueryDateTime(timeMin, defaultDateParts, 0)
+        : normalizeCalendarQueryDateTime(undefined, defaultDateParts, 0),
+      timeMax: timeMax ? normalizeCalendarQueryDateTime(timeMax, defaultDateParts, 0) : undefined,
+      timeZone: GOOGLE_CALENDAR_TIME_ZONE,
       maxResults: 50,
       singleEvents: true,
       orderBy: "startTime",
     });
     res.json(response.data.items);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    await sendCalendarApiError(res, error);
   }
 });
 
 app.post("/api/calendar/events", requireAuth, async (req: any, res: any) => {
   try {
     const { calendarId = "primary", summary, description, start, end } = req.body;
+    const resolvedCalendarId = resolveCalendarId(calendarId);
+    const normalizedTimes = normalizeCalendarEventTimes(start, end);
     const calendar = google.calendar({ version: "v3", auth: req.oauth2Client });
     const response = await calendar.events.insert({
-      calendarId,
+      calendarId: resolvedCalendarId,
       requestBody: {
         summary,
         description,
-        start: { dateTime: new Date(start).toISOString() },
-        end: { dateTime: new Date(end).toISOString() },
+        start: normalizedTimes.start,
+        end: normalizedTimes.end,
       },
     });
     res.json(response.data);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    await sendCalendarApiError(res, error);
   }
 });
 
 app.patch("/api/calendar/events/:eventId", requireAuth, async (req: any, res: any) => {
   try {
     const { calendarId = "primary", summary, description, start, end } = req.body;
+    const resolvedCalendarId = resolveCalendarId(calendarId);
     const { eventId } = req.params;
     const requestBody: any = {};
 
     if (summary !== undefined) requestBody.summary = summary;
     if (description !== undefined) requestBody.description = description;
-    if (start !== undefined) requestBody.start = { dateTime: new Date(start).toISOString() };
-    if (end !== undefined) requestBody.end = { dateTime: new Date(end).toISOString() };
+    if (start !== undefined && end !== undefined) {
+      const normalizedTimes = normalizeCalendarEventTimes(start, end);
+      requestBody.start = normalizedTimes.start;
+      requestBody.end = normalizedTimes.end;
+    } else {
+      if (start !== undefined) requestBody.start = normalizeCalendarSingleEventTime(start, 9);
+      if (end !== undefined) requestBody.end = normalizeCalendarSingleEventTime(end, 10);
+    }
 
     const calendar = google.calendar({ version: "v3", auth: req.oauth2Client });
     const response = await calendar.events.patch({
-      calendarId: calendarId as string,
+      calendarId: resolvedCalendarId,
       eventId: eventId as string,
       requestBody,
     });
     res.json(response.data);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    await sendCalendarApiError(res, error);
   }
 });
 
 app.delete("/api/calendar/events/:eventId", requireAuth, async (req: any, res: any) => {
   try {
     const { calendarId = "primary" } = req.query;
+    const resolvedCalendarId = resolveCalendarId(calendarId);
     const { eventId } = req.params;
     const calendar = google.calendar({ version: "v3", auth: req.oauth2Client });
     await calendar.events.delete({
-      calendarId: calendarId as string,
+      calendarId: resolvedCalendarId,
       eventId: eventId as string,
     });
     res.json({ success: true });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    await sendCalendarApiError(res, error);
   }
 });
 
@@ -1945,7 +2333,7 @@ app.get("/api/met/artwork-of-the-day", async (_req, res) => {
       });
     }
 
-    res.status(500).json({ error: error.message || "Nepodařilo se načíst obraz dne z Metu." });
+    res.status(500).json({ error: error.message || "Nepodařilo se načíst Picture of the Day z Metu." });
   }
 });
 

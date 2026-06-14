@@ -35,7 +35,7 @@ const readArtworkResponse = async (res: Response): Promise<MetArtwork> => {
   }
 
   if (!res.ok) {
-    throw new Error(data?.error || 'Nepodařilo se načíst obraz dne');
+    throw new Error(data?.error || 'Nepodařilo se načíst Picture of the Day');
   }
 
   return data;
@@ -55,7 +55,7 @@ export function MetArtworkDashboard() {
         setError(null);
       } catch (err: any) {
         console.warn('Met artwork unavailable', err);
-        setError(err.message || 'Nepodařilo se načíst obraz dne');
+        setError(err.message || 'Nepodařilo se načíst Picture of the Day');
       } finally {
         setLoading(false);
       }
@@ -70,7 +70,7 @@ export function MetArtworkDashboard() {
     return (
       <div className="flex min-h-[12rem] flex-col items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 text-xs text-zinc-500">
         <Loader2 className="mb-2 h-5 w-5 animate-spin text-amber-500" />
-        <p>Vybírám obraz dne z Metu...</p>
+        <p>Vybírám Picture of the Day z Metu...</p>
       </div>
     );
   }
@@ -94,7 +94,7 @@ export function MetArtworkDashboard() {
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-zinc-800 bg-zinc-900/70 px-3 py-2">
         <h2 className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
           <Palette className="h-4 w-4 shrink-0 text-amber-500" />
-          Obraz dne
+          Picture of the Day
         </h2>
         <div className="shrink-0 text-[11px] font-medium text-zinc-500">
           The Met

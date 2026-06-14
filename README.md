@@ -28,3 +28,7 @@ View your app in AI Studio: https://ai.studio/apps/f1fafaa5-f34e-489b-aa85-23ca4
 5. Invite the bot with View Channels, Send Messages, Send Messages in Threads, and Read Message History permissions.
 6. Start the bot:
    `npm run discord`
+
+## Netflix profile
+
+Jeeves opens Netflix for profile `V` by default. For fully automatic switching, set `NETFLIX_PROFILE_TOKEN` in `.env` to the profile GUID from a Netflix `SwitchProfile?tkn=...` link. If the token is empty, Jeeves opens Netflix at the profile chooser for `V` and then continues to the normal browse/search page.

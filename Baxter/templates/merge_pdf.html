@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Images to PDF - Baxter</title>
+    <title>Spojit PDF - Baxter</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=EB+Garamond:ital,wght@0,400;0,500;0,700;1,400&display=swap');
@@ -170,11 +170,15 @@
             white-space: nowrap;
         }
 
+        .part-range {
+            color: var(--color-gold-dark);
+            font-size: 13px;
+            margin-top: 3px;
+        }
         .part-actions {
             display: flex;
             gap: 8px;
         }
-
         .icon-btn {
             width: 34px;
             height: 34px;
@@ -258,12 +262,12 @@
             }
 
             .part-item {
-                grid-template-columns: 22px minmax(0, 1fr) auto;
+                grid-template-columns: 22px minmax(0, 1fr);
             }
 
             .part-actions {
-                grid-column: 3;
-                justify-content: flex-end;
+                grid-column: 2;
+                justify-content: flex-start;
             }
         }
     </style>
@@ -272,24 +276,24 @@
     <div class="tool-shell">
         <main class="tool-panel">
             <div class="tool-header">
-                <h1><i class="fa-solid fa-images"></i> Images to PDF</h1>
+                <h1><i class="fa-solid fa-layer-group"></i> Spojit PDF</h1>
                 <div class="tool-kicker">Baxter Secretariat Actions</div>
             </div>
 
-            <p class="intro">Add images, arrange them in the required order, and let Baxter convert them into one combined PDF document.</p>
+            <p class="intro">Přidejte PDF dokumenty, seřaďte je, podle potřeby rozdělte rozsahy stránek a Baxter připraví jeden hotový soubor.</p>
 
             <div class="upload-area" id="uploadArea">
                 <i class="fa-solid fa-cloud-arrow-up"></i>
-                <h3>Click or drop images here</h3>
-                <p>Supported formats: JPG, PNG</p>
+                <h3>Klikněte nebo sem přetáhněte PDF</h3>
+                <p>Pouze PDF dokumenty</p>
             </div>
-            <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,image/jpeg,image/png">
+            <input type="file" id="fileInput" multiple accept=".pdf,application/pdf">
 
-            <div class="empty-state" id="emptyState">No images have been added yet.</div>
-            <ul class="part-list" id="fileList"></ul>
+            <div class="empty-state" id="emptyState">Zatím nejsou přidané žádné PDF části.</div>
+            <ul class="part-list" id="partList"></ul>
 
             <button class="btn-generate" id="generateBtn" disabled>
-                <i class="fa-solid fa-file-pdf"></i> Generate PDF
+                <i class="fa-solid fa-file-circle-plus"></i> Spojit PDF
             </button>
             <div id="status"></div>
         </main>
@@ -298,108 +302,173 @@
     <script>
         const fileInput = document.getElementById('fileInput');
         const uploadArea = document.getElementById('uploadArea');
-        const fileList = document.getElementById('fileList');
+        const partList = document.getElementById('partList');
         const emptyState = document.getElementById('emptyState');
         const generateBtn = document.getElementById('generateBtn');
         const statusDiv = document.getElementById('status');
-        
-        let selectedFiles = [];
 
-        // Upload Area Clicks
+        let uploadedFiles = [];
+        let parts = [];
+        let nextPartId = 1;
+
         uploadArea.addEventListener('click', () => fileInput.click());
-        
-        // File Selection
-        fileInput.addEventListener('change', (e) => {
-            addFiles(e.target.files);
-        });
+        fileInput.addEventListener('change', event => addFiles(event.target.files));
 
-        // Drag & Drop to Upload Area
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
+        uploadArea.addEventListener('dragover', event => {
+            event.preventDefault();
             uploadArea.style.background = 'rgba(197, 160, 89, 0.18)';
         });
         uploadArea.addEventListener('dragleave', () => {
             uploadArea.style.background = 'rgba(0, 0, 0, 0.18)';
         });
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
+        uploadArea.addEventListener('drop', event => {
+            event.preventDefault();
             uploadArea.style.background = 'rgba(0, 0, 0, 0.18)';
-            addFiles(e.dataTransfer.files);
+            addFiles(event.dataTransfer.files);
         });
 
         function addFiles(files) {
-            for (let f of files) {
-                if (f.type.startsWith('image/') || f.name.toLowerCase().endsWith('.jpg') || f.name.toLowerCase().endsWith('.jpeg') || f.name.toLowerCase().endsWith('.png')) {
-                    selectedFiles.push(f);
-                } else {
-                    statusDiv.innerText = 'Baxter accepts JPG and PNG formats only.';
+            for (const file of files) {
+                if (!isPdf(file)) {
+                    statusDiv.innerText = 'Baxter přijímá pouze PDF dokumenty.';
+                    continue;
                 }
+                const fileIndex = uploadedFiles.push(file) - 1;
+                parts.push(makePart(fileIndex, null, null));
             }
-            renderFiles();
+            renderParts();
             fileInput.value = '';
         }
 
-        function renderFiles() {
-            fileList.innerHTML = '';
-            selectedFiles.forEach((file, index) => {
-                const li = document.createElement('li');
-                li.className = 'part-item';
-                li.draggable = true;
-                li.dataset.index = index;
+        function isPdf(file) {
+            return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        }
+
+        function makePart(fileIndex, startPage, endPage) {
+            return {
+                id: nextPartId++,
+                fileIndex,
+                startPage,
+                endPage
+            };
+        }
+
+        function rangeLabel(part) {
+            if (!part.startPage && !part.endPage) return 'whole document';
+            if (part.startPage && part.endPage && part.startPage === part.endPage) return `page ${part.startPage}`;
+            if (part.startPage && part.endPage) return `pages ${part.startPage}-${part.endPage}`;
+            if (part.startPage) return `from page ${part.startPage}`;
+            return `through page ${part.endPage}`;
+        }
+
+        function renderParts() {
+            partList.innerHTML = '';
+            parts.forEach((part, index) => {
+                const file = uploadedFiles[part.fileIndex];
+                const item = document.createElement('li');
+                item.className = 'part-item';
+                item.draggable = true;
+                item.dataset.index = index;
 
                 const grip = document.createElement('i');
                 grip.className = 'fa-solid fa-grip-vertical';
                 grip.style.color = '#aaa';
-                li.appendChild(grip);
+                item.appendChild(grip);
 
                 const main = document.createElement('div');
                 main.className = 'part-main';
                 const name = document.createElement('div');
                 name.className = 'part-name';
-                name.textContent = file.name;
+                name.textContent = file ? file.name : 'PDF';
+                const range = document.createElement('div');
+                range.className = 'part-range';
+                range.textContent = rangeLabel(part);
                 main.appendChild(name);
-                li.appendChild(main);
+                main.appendChild(range);
+                item.appendChild(main);
 
                 const actions = document.createElement('div');
                 actions.className = 'part-actions';
-                
-                const removeBtn = document.createElement('button');
-                removeBtn.type = 'button';
-                removeBtn.className = 'icon-btn danger';
-                removeBtn.title = 'Remove this image';
-                removeBtn.setAttribute('aria-label', 'Remove this image');
-                removeBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-                removeBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    removeFile(index);
-                };
-                actions.appendChild(removeBtn);
-                li.appendChild(actions);
+                actions.appendChild(actionButton('fa-scissors', 'Rozdělit tuto část', () => splitPart(index)));
+                actions.appendChild(actionButton('fa-trash', 'Odebrat tuto část', () => removePart(index), true));
+                item.appendChild(actions);
 
-                // Reordering Drag & Drop
-                li.addEventListener('dragstart', (e) => { li.classList.add('dragging'); });
-                li.addEventListener('dragend', () => { li.classList.remove('dragging'); updateOrder(); });
-                
-                fileList.appendChild(li);
+                item.addEventListener('dragstart', () => item.classList.add('dragging'));
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                    updateOrderFromDom();
+                });
+
+                partList.appendChild(item);
             });
-            emptyState.style.display = selectedFiles.length ? 'none' : 'block';
-            generateBtn.disabled = selectedFiles.length === 0;
+            emptyState.style.display = parts.length ? 'none' : 'block';
+            generateBtn.disabled = parts.length === 0;
         }
 
-        function removeFile(index) {
-            selectedFiles.splice(index, 1);
-            renderFiles();
+        function actionButton(icon, title, handler, danger = false) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = danger ? 'icon-btn danger' : 'icon-btn';
+            button.title = title;
+            button.setAttribute('aria-label', title);
+            button.innerHTML = `<i class="fa-solid ${icon}"></i>`;
+            button.addEventListener('click', event => {
+                event.stopPropagation();
+                handler();
+            });
+            return button;
         }
 
-        fileList.addEventListener('dragover', e => {
-            e.preventDefault();
-            const dragging = document.querySelector('.dragging');
+        function splitPart(index) {
+            const value = prompt('Rozsahy stránek, například 1-2,3,5-');
+            if (value === null) return;
+            const newParts = parseRanges(value).map(range => makePart(parts[index].fileIndex, range.startPage, range.endPage));
+            if (!newParts.length) {
+                statusDiv.innerText = 'The page range is not valid.';
+                return;
+            }
+            parts.splice(index, 1, ...newParts);
+            renderParts();
+        }
+
+        function parseRanges(value) {
+            return value.split(',')
+                .map(piece => piece.trim())
+                .filter(Boolean)
+                .map(piece => {
+                    if (piece.includes('-')) {
+                        const [start, end] = piece.split('-', 2).map(part => part.trim());
+                        const startPage = start ? Number(start) : null;
+                        const endPage = end ? Number(end) : null;
+                        if ((start && !validPage(startPage)) || (end && !validPage(endPage))) return null;
+                        if (startPage && endPage && startPage > endPage) return null;
+                        return { startPage, endPage };
+                    }
+                    const page = Number(piece);
+                    if (!validPage(page)) return null;
+                    return { startPage: page, endPage: page };
+                })
+                .filter(Boolean);
+        }
+
+        function validPage(value) {
+            return Number.isInteger(value) && value >= 1;
+        }
+
+        function removePart(index) {
+            parts.splice(index, 1);
+            renderParts();
+        }
+
+        partList.addEventListener('dragover', event => {
+            event.preventDefault();
+            const dragging = partList.querySelector('.dragging');
             if (!dragging) return;
-            const afterElement = getDragAfterElement(fileList, e.clientY);
+            const afterElement = getDragAfterElement(partList, event.clientY);
             if (afterElement == null) {
-                fileList.appendChild(dragging);
+                partList.appendChild(dragging);
             } else {
-                fileList.insertBefore(dragging, afterElement);
+                partList.insertBefore(dragging, afterElement);
             }
         });
 
@@ -409,45 +478,50 @@
                 const box = child.getBoundingClientRect();
                 const offset = y - box.top - box.height / 2;
                 if (offset < 0 && offset > closest.offset) {
-                    return { offset: offset, element: child };
-                } else {
-                    return closest;
+                    return { offset, element: child };
                 }
+                return closest;
             }, { offset: Number.NEGATIVE_INFINITY }).element;
         }
 
-        function updateOrder() {
-            const items = [...fileList.querySelectorAll('.part-item')];
-            const newFiles = items.map(item => selectedFiles[item.dataset.index]);
-            selectedFiles = newFiles;
-            renderFiles();
+        function updateOrderFromDom() {
+            const items = [...partList.querySelectorAll('.part-item')];
+            parts = items.map(item => parts[Number(item.dataset.index)]);
+            renderParts();
         }
 
         generateBtn.addEventListener('click', async () => {
-            if (selectedFiles.length === 0) return;
+            if (!parts.length) return;
             generateBtn.disabled = true;
-            statusDiv.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating PDF document...';
-            
+            statusDiv.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Spojuji PDF dokumenty...';
+
             const formData = new FormData();
-            selectedFiles.forEach(f => formData.append('files', f));
+            uploadedFiles.forEach(file => formData.append('files', file));
+            formData.append('plan', JSON.stringify({
+                parts: parts.map(part => ({
+                    file_index: part.fileIndex,
+                    start_page: part.startPage,
+                    end_page: part.endPage
+                }))
+            }));
 
             try {
-                const res = await fetch('/api/jobs/image-to-pdf', {
+                const res = await fetch('/api/jobs/merge-pdf', {
                     method: 'POST',
                     body: formData
                 });
                 const payload = await res.json();
-                
                 statusDiv.innerText = `${payload.status}: ${payload.message}`;
                 if (payload.output_urls && payload.output_urls.length > 0) {
                     payload.output_urls.forEach(url => window.open(url, '_blank'));
-                    selectedFiles = [];
-                    renderFiles();
+                    uploadedFiles = [];
+                    parts = [];
+                    renderParts();
                 }
             } catch (err) {
                 statusDiv.innerText = 'Server error.';
             } finally {
-                generateBtn.disabled = selectedFiles.length === 0;
+                generateBtn.disabled = parts.length === 0;
             }
         });
     </script>

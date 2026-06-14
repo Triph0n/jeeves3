@@ -43,9 +43,10 @@ export function BaxterAdvertButton({ vacancy, compact = false }: BaxterAdvertBut
   return (
     <button
       type="button"
+      data-state={state}
       onClick={handleClick}
       disabled={state === 'sending'}
-      className={`inline-flex shrink-0 items-center justify-center rounded-md border transition-colors ${
+      className={`baxter-advert-button inline-flex shrink-0 items-center justify-center rounded-md border transition-colors ${
         compact ? 'h-6 w-6' : 'h-7 w-7'
       } ${
         state === 'sent'

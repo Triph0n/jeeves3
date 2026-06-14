@@ -24,17 +24,69 @@ interface CalendarData {
   error: string | null;
 }
 
-const DAY_START_HOUR = 0;
-const DAY_END_HOUR = 24;
+const DAY_START_HOUR = 6;
+const DAY_END_HOUR = 22;
 const HOURS = Array.from(
   { length: DAY_END_HOUR - DAY_START_HOUR + 1 },
   (_, index) => DAY_START_HOUR + index
 );
 const VISIBLE_HOURS = DAY_END_HOUR - DAY_START_HOUR;
+const CALENDAR_TIME_ZONE = 'Europe/Prague';
 const getHourTopPercent = (hour: number) =>
   ((hour - DAY_START_HOUR) / VISIBLE_HOURS) * 100;
 const getHourLabelTopPercent = (hour: number) =>
   ((hour - DAY_START_HOUR + 0.5) / VISIBLE_HOURS) * 100;
+
+const padDatePart = (value: number) => String(value).padStart(2, '0');
+
+const getPragueDateTimeParts = (date: Date) => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: CALENDAR_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+
+  const getPart = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find(part => part.type === type)?.value || 0);
+  return {
+    year: getPart('year'),
+    month: getPart('month'),
+    day: getPart('day'),
+    hour: getPart('hour'),
+    minute: getPart('minute'),
+  };
+};
+
+const localDateTimeToComparable = (value: string) => {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!match) return Number.NaN;
+  const [, year, month, day, hour, minute] = match;
+  return Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
+};
+
+const parseLocalDateTimeParts = (value: string) => {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!match) return null;
+  const [, year, month, day, hour, minute] = match;
+  return {
+    year: Number(year),
+    month: Number(month),
+    day: Number(day),
+    hour: Number(hour),
+    minute: Number(minute),
+  };
+};
+
+const addMinutesToLocalDateTime = (value: string, minutes: number) => {
+  const date = new Date(localDateTimeToComparable(value) + minutes * 60000);
+  return `${date.getUTCFullYear()}-${padDatePart(date.getUTCMonth() + 1)}-${padDatePart(date.getUTCDate())}T${padDatePart(date.getUTCHours())}:${padDatePart(date.getUTCMinutes())}`;
+};
+
+const formatCalendarQueryDateTime = (date: Date) =>
+  `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}T${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}:00`;
 
 interface EditingEvent {
   calendarId: string;
@@ -64,6 +116,8 @@ export function CalendarDashboard({ isConnected }: { isConnected: boolean }) {
   useEffect(() => {
     if (!isConnected) {
       setCalendarsData([]);
+      setLoading(false);
+      setError(null);
       return;
     }
 
@@ -71,8 +125,15 @@ export function CalendarDashboard({ isConnected }: { isConnected: boolean }) {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch('/api/calendar/list');
-        if (!res.ok) throw new Error('Nepodařilo se načíst seznam kalendářů');
+        const res = await fetch('/api/calendar/list', { cache: 'no-store' });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          if (errData.reconnectRequired) {
+            window.dispatchEvent(new CustomEvent('calendarAuthError'));
+            throw new Error('Google kalendář vyžaduje opětovné přihlášení.');
+          }
+          throw new Error(errData.error || 'Nepodařilo se načíst seznam kalendářů');
+        }
         const allCalendars: Calendar[] = await res.json();
 
         const targetCals = FAMILY_CALENDARS.map(familyCalendar => {
@@ -104,9 +165,17 @@ export function CalendarDashboard({ isConnected }: { isConnected: boolean }) {
         await Promise.all(targetCals.map(async (cal) => {
           try {
             const eventsRes = await fetch(
-              `/api/calendar/events?calendarId=${encodeURIComponent(cal.id)}&timeMin=${dayStart.toISOString()}&timeMax=${dayEnd.toISOString()}`
+              `/api/calendar/events?calendarId=${encodeURIComponent(cal.id)}&timeMin=${encodeURIComponent(formatCalendarQueryDateTime(dayStart))}&timeMax=${encodeURIComponent(formatCalendarQueryDateTime(dayEnd))}`,
+              { cache: 'no-store' }
             );
-            if (!eventsRes.ok) throw new Error('Nepodařilo se načíst události');
+            if (!eventsRes.ok) {
+              const errData = await eventsRes.json().catch(() => ({}));
+              if (errData.reconnectRequired) {
+                window.dispatchEvent(new CustomEvent('calendarAuthError'));
+                throw new Error('Google kalendář vyžaduje opětovné přihlášení.');
+              }
+              throw new Error(errData.error || 'Nepodařilo se načíst události');
+            }
             const events: CalendarEvent[] = await eventsRes.json();
             
             setCalendarsData(prev => prev.map(data => 
@@ -178,7 +247,11 @@ export function CalendarDashboard({ isConnected }: { isConnected: boolean }) {
 
   const formatTime = (dateString?: string) => {
     if (!dateString) return 'Celý den';
-    return new Date(dateString).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
+    return new Date(dateString).toLocaleTimeString('cs-CZ', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: CALENDAR_TIME_ZONE,
+    });
   };
 
   const getVisibleEventLayout = (event: CalendarEvent) => {
@@ -190,21 +263,53 @@ export function CalendarDashboard({ isConnected }: { isConnected: boolean }) {
       return { visible: false, top: 0, height: 0 };
     }
 
-    const visibleStart = new Date(selectedDate);
-    visibleStart.setHours(DAY_START_HOUR, 0, 0, 0);
-    const visibleEnd = new Date(selectedDate);
-    visibleEnd.setHours(DAY_END_HOUR, 0, 0, 0);
-    const eventStart = new Date(event.start.dateTime);
-    const eventEnd = new Date(event.end.dateTime);
+    const visibleStart = Date.UTC(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate(),
+      DAY_START_HOUR,
+      0,
+      0,
+      0
+    );
+    const visibleEnd = Date.UTC(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate(),
+      DAY_END_HOUR,
+      0,
+      0,
+      0
+    );
+    const eventStartParts = getPragueDateTimeParts(new Date(event.start.dateTime));
+    const eventEndParts = getPragueDateTimeParts(new Date(event.end.dateTime));
+    const eventStart = Date.UTC(
+      eventStartParts.year,
+      eventStartParts.month - 1,
+      eventStartParts.day,
+      eventStartParts.hour,
+      eventStartParts.minute,
+      0,
+      0
+    );
+    const eventEnd = Date.UTC(
+      eventEndParts.year,
+      eventEndParts.month - 1,
+      eventEndParts.day,
+      eventEndParts.hour,
+      eventEndParts.minute,
+      0,
+      0
+    );
 
     if (eventEnd <= visibleStart || eventStart >= visibleEnd) {
       return { visible: false, top: 0, height: 0 };
     }
 
-    const clippedStart = new Date(Math.max(eventStart.getTime(), visibleStart.getTime()));
-    const clippedEnd = new Date(Math.min(eventEnd.getTime(), visibleEnd.getTime()));
-    const startMinutes = (clippedStart.getTime() - visibleStart.getTime()) / 60000;
-    const durationMinutes = Math.max(15, (clippedEnd.getTime() - clippedStart.getTime()) / 60000);
+    const clippedStart = Math.max(eventStart, visibleStart);
+    const clippedEnd = Math.min(eventEnd, visibleEnd);
+    const startMinutes = (clippedStart - visibleStart) / 60000;
+    const durationMinutes = Math.max(15, (clippedEnd - clippedStart) / 60000);
 
     return {
       visible: true,
@@ -214,21 +319,22 @@ export function CalendarDashboard({ isConnected }: { isConnected: boolean }) {
   };
 
   const formatDateTimeInput = (dateString?: string, fallbackHour = 9) => {
-    const date = dateString ? new Date(dateString) : new Date(selectedDate);
-    if (!dateString) date.setHours(fallbackHour, 0, 0, 0);
-    const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-    return offsetDate.toISOString().slice(0, 16);
+    if (!dateString) {
+      return `${selectedDate.getFullYear()}-${padDatePart(selectedDate.getMonth() + 1)}-${padDatePart(selectedDate.getDate())}T${padDatePart(fallbackHour)}:00`;
+    }
+
+    const parts = getPragueDateTimeParts(new Date(dateString));
+    return `${parts.year}-${padDatePart(parts.month)}-${padDatePart(parts.day)}T${padDatePart(parts.hour)}:${padDatePart(parts.minute)}`;
   };
 
   const formatCompactDateTime = (dateTimeValue: string) => {
     if (!dateTimeValue) return '';
 
-    const date = new Date(dateTimeValue);
-    if (Number.isNaN(date.getTime())) return dateTimeValue;
+    const parts = parseLocalDateTimeParts(dateTimeValue) || getPragueDateTimeParts(new Date(dateTimeValue));
+    if (!parts.year) return dateTimeValue;
 
-    const pad = (value: number) => String(value).padStart(2, '0');
-    const year = pad(date.getFullYear() % 100);
-    return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${year} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    const year = padDatePart(parts.year % 100);
+    return `${padDatePart(parts.day)}.${padDatePart(parts.month)}.${year} ${padDatePart(parts.hour)}:${padDatePart(parts.minute)}`;
   };
 
   const parseCompactDateTime = (value: string) => {
@@ -247,7 +353,7 @@ export function CalendarDashboard({ isConnected }: { isConnected: boolean }) {
     );
 
     if (Number.isNaN(date.getTime())) return null;
-    return formatDateTimeInput(date.toISOString());
+    return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}T${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}`;
   };
 
   const shiftEditingTime = (field: 'start' | 'end', minutes: number) => {
@@ -255,10 +361,8 @@ export function CalendarDashboard({ isConnected }: { isConnected: boolean }) {
 
     const currentValue = editingEvent[field];
     const textField = field === 'start' ? 'startText' : 'endText';
-    const date = currentValue ? new Date(currentValue) : new Date(selectedDate);
-    if (!currentValue) date.setHours(field === 'start' ? 9 : 10, 0, 0, 0);
-    date.setMinutes(date.getMinutes() + minutes);
-    const shiftedValue = formatDateTimeInput(date.toISOString());
+    const baseValue = currentValue || formatDateTimeInput(undefined, field === 'start' ? 9 : 10);
+    const shiftedValue = addMinutesToLocalDateTime(baseValue, minutes);
 
     setEditingEvent({
       ...editingEvent,

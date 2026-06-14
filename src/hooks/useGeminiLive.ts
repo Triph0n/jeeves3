@@ -72,6 +72,8 @@ const JEEVES_SYSTEM_INSTRUCTION = [
   "KALENDÁŘOVÉ PŘÍKAZY: Uživatel bude říkat jen 'create', 'delete' nebo 'edit'. Po příkazu následuje jméno cílového kalendáře Vladimir/Vlada, Ursula/Ulinka, Max, Avi nebo Beatrix a den/datum.",
   "Slovo create znamená vytvořit událost nástrojem addCalendarEvent. Slovo delete znamená najít událost v daném kalendáři a dni pomocí getCalendarEvents a potom ji smazat nástrojem deleteCalendarEvent.",
   "Slovo edit znamená najít událost v daném kalendáři a dni pomocí getCalendarEvents a potom ji změnit nástrojem editCalendarEvent.",
+  "ČASOVÁ PRAVIDLA PRO KALENDÁŘ: Časová zóna je vždy Praha, tedy Europe/Prague. Když uživatel zadá čas číslem, 8 znamená 08:00 a 8:30 znamená 08:30.",
+  "Kalendářní časy posílej jako lokální pražský ISO tvar bez Z/UTC offsetu, například 2026-06-06T08:00:00 pro 08:00 v Praze.",
   "Jméno po příkazu vždy znamená kalendář, nikdy ho nepiš do názvu události. Do calendarId, calendarName nebo personName pošli toto jméno.",
   "Zbytek věty po jménu a dni použij jako obsah, popis nebo změnu události.",
   "ABSOLUTNÍ PRAVIDLO PRO KALENDÁŘ: Kdykoliv uživatel požádá o zápis, přidání, změnu nebo smazání události, pouze spusť příslušný nástroj a zůstaň zcela zticha.",
@@ -82,6 +84,11 @@ const startOfLocalDay = (date = new Date()) => {
   const day = new Date(date);
   day.setHours(0, 0, 0, 0);
   return day;
+};
+
+const formatLocalDateTimeForCalendar = (date: Date) => {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
 };
 
 const hasExplicitTime = (value: unknown) =>
@@ -103,7 +110,10 @@ const getCalendarQueryWindow = (args: any) => {
     timeMax.setDate(timeMax.getDate() + days);
   }
 
-  return { timeMin, timeMax };
+  return {
+    timeMin: formatLocalDateTimeForCalendar(timeMin),
+    timeMax: formatLocalDateTimeForCalendar(timeMax),
+  };
 };
 
 const prepareCalendarEventArgs = async (args: any) => {
@@ -147,26 +157,47 @@ const extractNetflixTitle = (text: string) => {
   return "";
 };
 
+const NETFLIX_BROWSE_URL = "https://www.netflix.com/browse";
+const NETFLIX_SEARCH_URL = "https://www.netflix.com/search";
+const NETFLIX_PROFILES_GATE_URL = "https://www.netflix.com/ProfilesGate";
+const NETFLIX_SWITCH_PROFILE_URL = "https://www.netflix.com/SwitchProfile";
+const NETFLIX_PROFILE_NAME = import.meta.env.VITE_NETFLIX_PROFILE_NAME || "V";
+const NETFLIX_PROFILE_TOKEN = import.meta.env.VITE_NETFLIX_PROFILE_TOKEN || "";
+
 const buildNetflixUrl = (title?: string) => {
   const cleanTitle = String(title || "").trim().replace(/^film\s+/i, "").trim();
-  if (!cleanTitle) {
-    return { url: "https://www.netflix.com/browse", title: "" };
+  const targetUrl = cleanTitle
+    ? (() => {
+        const url = new URL(NETFLIX_SEARCH_URL);
+        url.searchParams.set("q", cleanTitle);
+        return url.toString();
+      })()
+    : NETFLIX_BROWSE_URL;
+
+  if (!NETFLIX_PROFILE_TOKEN) {
+    const profileGateUrl = new URL(NETFLIX_PROFILES_GATE_URL);
+    profileGateUrl.searchParams.set("nextpage", targetUrl);
+    return { url: profileGateUrl.toString(), title: cleanTitle, profileName: NETFLIX_PROFILE_NAME, profileSelected: false };
   }
 
-  const url = new URL("https://www.netflix.com/search");
-  url.searchParams.set("q", cleanTitle);
-  return { url: url.toString(), title: cleanTitle };
+  const profileUrl = new URL(NETFLIX_SWITCH_PROFILE_URL);
+  profileUrl.searchParams.set("tkn", NETFLIX_PROFILE_TOKEN);
+  profileUrl.searchParams.set("nextpage", targetUrl);
+  return { url: profileUrl.toString(), title: cleanTitle, profileName: NETFLIX_PROFILE_NAME, profileSelected: true };
 };
 
 const openNetflixInBrowser = (title?: string) => {
   const netflix = buildNetflixUrl(title);
+  const profilePhrase = netflix.profileSelected
+    ? `na profilu ${netflix.profileName}`
+    : `s výběrem profilu ${netflix.profileName}`;
   window.open(netflix.url, "_blank", "noopener,noreferrer");
 
   return {
     ...netflix,
     result: netflix.title
-      ? `Otevřel jsem Netflix a vyhledal "${netflix.title}".`
-      : "Otevřel jsem Netflix.",
+      ? `Otevřel jsem Netflix ${profilePhrase} a vyhledal "${netflix.title}".`
+      : `Otevřel jsem Netflix ${profilePhrase}.`,
   };
 };
 
@@ -185,6 +216,8 @@ const openNetflixWithServerFallback = async (title?: string) => {
     return {
       url: String(data.url || buildNetflixUrl(title).url),
       title: String(data.title || title || ""),
+      profileName: String(data.profileName || NETFLIX_PROFILE_NAME),
+      profileSelected: Boolean(data.profileSelected),
       result: String(data.result || "Netflix byl otevřen."),
     };
   } catch {
@@ -534,7 +567,7 @@ export function useGeminiLive() {
               },
               {
                 name: "openNetflix",
-                description: "Otevře Netflix v prohlížeči. Pokud je zadán název filmu nebo seriálu, otevře Netflix vyhledávání s tímto názvem.",
+                description: "Otevře Netflix v prohlížeči na profilu V. Pokud je zadán název filmu nebo seriálu, otevře Netflix vyhledávání s tímto názvem.",
                 parameters: {
                   type: Type.OBJECT,
                   properties: {
@@ -576,8 +609,8 @@ export function useGeminiLive() {
                     calendarId: { type: Type.STRING, description: `ID kalendáře nebo jméno cílového kalendáře: ${CALENDAR_TARGET_DESCRIPTION}.` },
                     calendarName: { type: Type.STRING, description: `Jméno cílového kalendáře, pokud je známo: ${CALENDAR_TARGET_DESCRIPTION}.` },
                     personName: { type: Type.STRING, description: `Jméno osoby/cílového kalendáře, pokud je známo: ${CALENDAR_TARGET_DESCRIPTION}.` },
-                    timeMin: { type: Type.STRING, description: "Začátek hledaného dne/období v ISO 8601 formátu." },
-                    timeMax: { type: Type.STRING, description: "Konec hledaného dne/období v ISO 8601 formátu." },
+                    timeMin: { type: Type.STRING, description: "Začátek hledaného dne/období v lokálním pražském ISO 8601 formátu bez Z/UTC offsetu." },
+                    timeMax: { type: Type.STRING, description: "Konec hledaného dne/období v lokálním pražském ISO 8601 formátu bez Z/UTC offsetu." },
                     days: { type: Type.NUMBER, description: "Počet dní dopředu, pokud nejsou zadány timeMin/timeMax." }
                   }
                 }
@@ -589,8 +622,8 @@ export function useGeminiLive() {
                   type: Type.OBJECT,
                   properties: {
                     summary: { type: Type.STRING, description: "Název události" },
-                    start: { type: Type.STRING, description: "Začátek události (ISO 8601 formát, např. 2026-03-30T15:00:00Z)" },
-                    end: { type: Type.STRING, description: "Konec události (ISO 8601 formát)" },
+                    start: { type: Type.STRING, description: "Začátek události v pražském čase. Použij lokální ISO bez Z/UTC offsetu, např. 2026-03-30T08:00:00. Holé číslo 8 znamená 08:00, 8:30 znamená 08:30." },
+                    end: { type: Type.STRING, description: "Konec události v pražském čase. Použij lokální ISO bez Z/UTC offsetu. Holé číslo 8 znamená 08:00, 8:30 znamená 08:30." },
                     calendarId: { type: Type.STRING, description: `ID kalendáře nebo jméno cílového kalendáře: ${CALENDAR_TARGET_DESCRIPTION}. Pokud uživatel řekne toto jméno po 'vytvoř událost', použij ho zde a nepiš ho do názvu události.` },
                     calendarName: { type: Type.STRING, description: `Jméno cílového kalendáře, pokud je známo: ${CALENDAR_TARGET_DESCRIPTION}.` },
                     personName: { type: Type.STRING, description: `Jméno osoby/cílového kalendáře, pokud je známo: ${CALENDAR_TARGET_DESCRIPTION}.` },
@@ -624,8 +657,8 @@ export function useGeminiLive() {
                     calendarName: { type: Type.STRING, description: `Jméno cílového kalendáře, pokud je známo: ${CALENDAR_TARGET_DESCRIPTION}.` },
                     personName: { type: Type.STRING, description: `Jméno osoby/cílového kalendáře, pokud je známo: ${CALENDAR_TARGET_DESCRIPTION}.` },
                     summary: { type: Type.STRING, description: "Nový název události, pokud se má změnit." },
-                    start: { type: Type.STRING, description: "Nový začátek události v ISO 8601 formátu, pokud se má změnit." },
-                    end: { type: Type.STRING, description: "Nový konec události v ISO 8601 formátu, pokud se má změnit." },
+                    start: { type: Type.STRING, description: "Nový začátek události v pražském čase, lokální ISO bez Z/UTC offsetu. Holé číslo 8 znamená 08:00, 8:30 znamená 08:30." },
+                    end: { type: Type.STRING, description: "Nový konec události v pražském čase, lokální ISO bez Z/UTC offsetu. Holé číslo 8 znamená 08:00, 8:30 znamená 08:30." },
                     description: { type: Type.STRING, description: "Nový popis události, pokud se má změnit." }
                   },
                   required: ["eventId"]
@@ -819,7 +852,7 @@ export function useGeminiLive() {
                       resultStr = formatBaxterAdvertResult(data, vacancy);
                       addChatMessage('assistant', resultStr);
                     } else if (call.name === "listCalendars") {
-                      const res = await fetch('/api/calendar/list');
+                      const res = await fetch('/api/calendar/list', { cache: 'no-store' });
                       if (!res.ok) throw new Error(await res.text());
                       const data = await res.json();
                       resultStr = JSON.stringify(data.map((c: any) => ({ id: c.id, summary: c.summary })));
@@ -827,7 +860,7 @@ export function useGeminiLive() {
                       const eventArgs = await prepareCalendarEventArgs(call.args);
                       const { calendarId = "primary" } = eventArgs;
                       const { timeMin, timeMax } = getCalendarQueryWindow(eventArgs);
-                      const res = await fetch(`/api/calendar/events?calendarId=${encodeURIComponent(String(calendarId))}&timeMin=${timeMin.toISOString()}&timeMax=${timeMax.toISOString()}`);
+                      const res = await fetch(`/api/calendar/events?calendarId=${encodeURIComponent(String(calendarId))}&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`, { cache: 'no-store' });
                       if (!res.ok) throw new Error(await res.text());
                       const data = await res.json();
                       resultStr = JSON.stringify(data.map((e: any) => ({ id: e.id, summary: e.summary, start: e.start?.dateTime || e.start?.date, end: e.end?.dateTime || e.end?.date })));

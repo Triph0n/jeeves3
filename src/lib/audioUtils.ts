@@ -1,7 +1,7 @@
 export class AudioRecorder {
   private stream: MediaStream | null = null;
   private audioContext: AudioContext | null = null;
-  private processor: ScriptProcessorNode | null = null;
+  private processor: AudioWorkletNode | null = null;
   private source: MediaStreamAudioSourceNode | null = null;
   private monitorGain: GainNode | null = null;
 
@@ -16,24 +16,42 @@ export class AudioRecorder {
       });
       this.audioContext = new AudioContext({ sampleRate: 16000 });
       this.source = this.audioContext.createMediaStreamSource(this.stream);
-      this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+
+      const workletCode = `
+class PCMProcessor extends AudioWorkletProcessor {
+  process(inputs, outputs, parameters) {
+    const input = inputs[0];
+    if (input && input.length > 0) {
+      const channelData = input[0];
+      const pcm16 = new Int16Array(channelData.length);
+      for (let i = 0; i < channelData.length; i++) {
+        let s = Math.max(-1, Math.min(1, channelData[i]));
+        pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+      }
+
+      const buffer = new ArrayBuffer(pcm16.length * 2);
+      const view = new DataView(buffer);
+      for (let i = 0; i < pcm16.length; i++) {
+        view.setInt16(i * 2, pcm16[i], true);
+      }
+
+      this.port.postMessage(buffer, [buffer]);
+    }
+    return true;
+  }
+}
+registerProcessor('pcm-processor', PCMProcessor);
+`;
+      const blob = new Blob([workletCode], { type: 'application/javascript' });
+      const workletUrl = URL.createObjectURL(blob);
+      await this.audioContext.audioWorklet.addModule(workletUrl);
+
+      this.processor = new AudioWorkletNode(this.audioContext, 'pcm-processor');
       this.monitorGain = this.audioContext.createGain();
       this.monitorGain.gain.value = 0;
 
-      this.processor.onaudioprocess = (e) => {
-        const inputData = e.inputBuffer.getChannelData(0);
-        const pcm16 = new Int16Array(inputData.length);
-        for (let i = 0; i < inputData.length; i++) {
-          let s = Math.max(-1, Math.min(1, inputData[i]));
-          pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-        }
-        
-        const buffer = new ArrayBuffer(pcm16.length * 2);
-        const view = new DataView(buffer);
-        for (let i = 0; i < pcm16.length; i++) {
-          view.setInt16(i * 2, pcm16[i], true);
-        }
-        
+      this.processor.port.onmessage = (e) => {
+        const buffer = e.data;
         let binary = '';
         const bytes = new Uint8Array(buffer);
         for (let i = 0; i < bytes.byteLength; i++) {

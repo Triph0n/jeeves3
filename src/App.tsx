@@ -47,8 +47,16 @@ export default function App() {
         setCalendarReconnectRequired(false);
       }
     };
+    const handleAuthError = () => {
+      setCalendarReconnectRequired(true);
+      setIsCalendarConnected(false);
+    };
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    window.addEventListener('calendarAuthError', handleAuthError);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      window.removeEventListener('calendarAuthError', handleAuthError);
+    };
   }, []);
 
   const handleConnectCalendar = async () => {
