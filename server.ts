@@ -68,6 +68,18 @@ type AgathaCatalogVerb = {
   perfect: string;
   example?: string;
 };
+type AgathaB2LessonTemplate = {
+  week: number;
+  day: number;
+  theme: string;
+  target: string;
+  inputText: string;
+  questions: string[];
+  phrases: string[];
+  grammarFocus: string;
+  outputTask: string;
+  transferTask: string;
+};
 const AGATHA_PDF_VERBS: AgathaCatalogVerb[] = [
   { id: "backen", infinitive: "backen", preterite: "backte", perfect: "hat gebacken", translationCs: "péct" },
   { id: "beginnen", infinitive: "beginnen", preterite: "begann", perfect: "hat begonnen", translationCs: "začít" },
@@ -163,6 +175,163 @@ const AGATHA_VERBS: AgathaCatalogVerb[] = [
   { id: "singen", infinitive: "singen", translationCs: "zpívat", present3: "singt", preterite: "sang", perfect: "hat gesungen", example: "Sie hat ein Lied gesungen." },
   { id: "stehen", infinitive: "stehen", translationCs: "stát", present3: "steht", preterite: "stand", perfect: "hat gestanden", example: "Das Glas hat auf dem Tisch gestanden." },
   { id: "liegen", infinitive: "liegen", translationCs: "ležet", present3: "liegt", preterite: "lag", perfect: "hat gelegen", example: "Das Buch hat auf dem Bett gelegen." },
+];
+const AGATHA_B2_COURSE_START = process.env.JEEVES_AGATHA_B2_START || "2026-06-14";
+const AGATHA_B2_WEEK_THEMES = [
+  "Opinions and reasons",
+  "Work, duties, and boundaries",
+  "Conflict and compromise",
+  "Culture, media, and taste",
+  "Formal writing",
+  "Narrating past events",
+  "Hypotheses and nuance",
+  "Fluency and transfer",
+];
+const AGATHA_B2_LESSON_TEMPLATES: AgathaB2LessonTemplate[] = [
+  {
+    week: 1,
+    day: 1,
+    theme: "Meinung klar begründen",
+    target: "Vyjádřit názor a přidat dva přesvědčivé důvody.",
+    inputText: "Viele Menschen möchten im Alltag mehr Zeit sparen. Einige bestellen deshalb fast alles online, andere kaufen lieber in kleinen Geschäften ein. Online-Shopping ist bequem und oft günstiger, aber man verliert den persönlichen Kontakt und unterstützt lokale Anbieter weniger. Für mich hängt die Entscheidung davon ab, ob ich etwas dringend brauche oder ob Beratung wichtig ist.",
+    questions: [
+      "Welche zwei Vorteile des Online-Shoppings nennt der Text?",
+      "Warum kaufen manche Menschen lieber in kleinen Geschäften?",
+      "Wann würdest du online kaufen und wann nicht?",
+    ],
+    phrases: ["Meiner Ansicht nach", "ein entscheidender Vorteil ist", "andererseits", "es hängt davon ab"],
+    grammarFocus: "Nebensätze mit weil/obwohl/dass: konjugované sloveso na konec.",
+    outputTask: "Napiš 6-8 vět: Soll man mehr online oder lokal einkaufen? Begründe deine Meinung.",
+    transferTask: "Použij stejné fráze zítra na téma Lernen mit Apps.",
+  },
+  {
+    week: 1,
+    day: 2,
+    theme: "Abwägen: einerseits/andererseits",
+    target: "Porovnat dvě možnosti bez černobílého závěru.",
+    inputText: "Wer eine neue Sprache lernt, braucht sowohl Disziplin als auch Freude. Einerseits helfen feste Lernzeiten, weil man nicht jeden Tag neu entscheiden muss. Andererseits kann ein zu strenger Plan schnell demotivieren. Sinnvoll ist deshalb ein Rhythmus, der verbindlich ist, aber kleine Pausen erlaubt.",
+    questions: [
+      "Warum helfen feste Lernzeiten?",
+      "Was kann an einem zu strengen Plan problematisch sein?",
+      "Wie sieht ein guter Rhythmus für dich aus?",
+    ],
+    phrases: ["einerseits", "andererseits", "sinnvoll ist deshalb", "nicht nur ... sondern auch"],
+    grammarFocus: "Dvojdílné spojky: nicht nur ... sondern auch.",
+    outputTask: "Napiš krátký názor: Ist ein fester Lernplan gut oder schlecht?",
+    transferTask: "Převeď argument na téma Sport oder Musik üben.",
+  },
+  {
+    week: 2,
+    day: 1,
+    theme: "Pflichten freundlich formulieren",
+    target: "Mluvit o povinnostech bez tvrdého tónu.",
+    inputText: "In einer Familie oder in einem Team entstehen Konflikte oft nicht wegen der Aufgabe selbst, sondern wegen des Tons. Wenn jemand sagt: Du musst das sofort machen, reagiert der andere schnell defensiv. Freundlicher klingt: Es wäre hilfreich, wenn du das heute noch erledigen könntest. So bleibt die Bitte klar, aber respektvoll.",
+    questions: [
+      "Warum entstehen Konflikte laut Text oft?",
+      "Welche Formulierung klingt freundlicher?",
+      "Welche Bitte könntest du heute höflich formulieren?",
+    ],
+    phrases: ["es wäre hilfreich, wenn", "könntest du bitte", "ich würde vorschlagen", "bis spätestens"],
+    grammarFocus: "Konjunktiv II pro zdvořilost: könnte, würde, wäre.",
+    outputTask: "Napiš zdvořilou zprávu člověku, který má něco dokončit.",
+    transferTask: "Zítra použij Konjunktiv II v jedné pracovní situaci.",
+  },
+  {
+    week: 3,
+    day: 1,
+    theme: "Konflikt entschärfen",
+    target: "Popsat konflikt a navrhnout kompromis.",
+    inputText: "Ein guter Kompromiss bedeutet nicht, dass beide Seiten völlig zufrieden sind. Er bedeutet eher, dass beide Seiten das Wichtigste behalten können. Dafür muss man zuerst verstehen, was der andere wirklich braucht. Erst danach lohnt es sich, über konkrete Lösungen zu sprechen.",
+    questions: [
+      "Was bedeutet ein guter Kompromiss laut Text?",
+      "Was sollte man zuerst verstehen?",
+      "Beschreibe einen kleinen Kompromiss aus deinem Alltag.",
+    ],
+    phrases: ["aus meiner Sicht", "ich kann nachvollziehen, dass", "wichtig wäre mir", "wir könnten uns darauf einigen"],
+    grammarFocus: "Infinitiv mit zu: Es lohnt sich, ... zu ...",
+    outputTask: "Napiš 8 vět: Ein Konflikt und ein möglicher Kompromiss.",
+    transferTask: "Použij frázi ich kann nachvollziehen, dass v jiné situaci.",
+  },
+  {
+    week: 4,
+    day: 1,
+    theme: "Kultur und Geschmack",
+    target: "Vysvětlit vkus a reagovat na jiný názor.",
+    inputText: "Über Geschmack lässt sich leicht streiten, weil Musik, Filme oder Kunst sehr persönliche Erinnerungen wecken. Trotzdem kann man über Geschmack sinnvoll sprechen. Man kann erklären, welche Stimmung ein Werk erzeugt, welche Details auffallen und warum es einen berührt oder kalt lässt.",
+    questions: [
+      "Warum ist Geschmack persönlich?",
+      "Wie kann man sinnvoll über Geschmack sprechen?",
+      "Welches Werk hat dich zuletzt berührt?",
+    ],
+    phrases: ["mich spricht besonders an", "auffällig ist", "es erinnert mich an", "ich sehe das anders, weil"],
+    grammarFocus: "Adjektivdeklination po ein/kein/der v krátkých popisech.",
+    outputTask: "Popiš film, obraz nebo hudbu v 7 větách a přidej vlastní hodnocení.",
+    transferTask: "Zkus stejné fráze při popisu jídla nebo místa.",
+  },
+  {
+    week: 5,
+    day: 1,
+    theme: "Formelle E-Mail",
+    target: "Napsat formální e-mail s jasnou prosbou.",
+    inputText: "Eine gute formelle E-Mail ist kurz, freundlich und konkret. Der Betreff sollte zeigen, worum es geht. Im ersten Satz erklärt man den Anlass, danach folgt die Bitte oder Information. Am Ende bedankt man sich und nennt, falls nötig, eine Frist.",
+    questions: [
+      "Welche drei Eigenschaften hat eine gute formelle E-Mail?",
+      "Was gehört in den ersten Satz?",
+      "Welche Frist würdest du in einer Anfrage nennen?",
+    ],
+    phrases: ["ich wende mich an Sie, weil", "ich wäre Ihnen dankbar, wenn", "für eine kurze Rückmeldung", "mit freundlichen Grüssen"],
+    grammarFocus: "Formální register: Sie/Ihnen/Ihre velkým písmenem.",
+    outputTask: "Napiš formální e-mail s prosbou o termín nebo informaci.",
+    transferTask: "Zítra přepiš krátkou neformální prosbu formálně.",
+  },
+  {
+    week: 6,
+    day: 1,
+    theme: "Vergangenheit erzählen",
+    target: "Vyprávět minulou událost v jasném pořadí.",
+    inputText: "Eine verständliche Erzählung braucht Orientierung. Zuerst nennt man die Situation: Wann und wo war es? Danach beschreibt man, was passiert ist. Am Ende erklärt man, warum die Erfahrung wichtig war oder was man daraus gelernt hat.",
+    questions: [
+      "Welche Orientierung braucht eine Erzählung?",
+      "Was kommt nach der Situation?",
+      "Welche Erfahrung würdest du kurz erzählen?",
+    ],
+    phrases: ["zunächst", "danach", "schliesslich", "daraus habe ich gelernt"],
+    grammarFocus: "Perfekt vs. Präteritum v běžném vyprávění.",
+    outputTask: "Napiš 8-10 vět o události z minulého týdne.",
+    transferTask: "Řekni stejný příběh stručněji ve 4 větách.",
+  },
+  {
+    week: 7,
+    day: 1,
+    theme: "Hypothetisch sprechen",
+    target: "Mluvit o možnostech a důsledcích.",
+    inputText: "Wenn man hypothetisch spricht, wirkt die Aussage oft vorsichtiger und reifer. Statt zu sagen: Das ist falsch, kann man sagen: Es könnte problematisch sein, wenn ... Dadurch öffnet man Raum für Diskussion und vermeidet unnötige Härte.",
+    questions: [
+      "Warum wirken hypothetische Aussagen vorsichtiger?",
+      "Welche Alternative nennt der Text zu Das ist falsch?",
+      "Formuliere eine vorsichtige Kritik.",
+    ],
+    phrases: ["es könnte sein, dass", "falls", "unter diesen Umständen", "das würde bedeuten"],
+    grammarFocus: "Konjunktiv II: würde + Infinitiv.",
+    outputTask: "Napiš 6 hypotetických vět k rozhodnutí, které tě čeká.",
+    transferTask: "Použij falls a unter diesen Umständen v jiné situaci.",
+  },
+  {
+    week: 8,
+    day: 1,
+    theme: "Flüssig zusammenfassen",
+    target: "Shrnout text a přidat vlastní stanovisko.",
+    inputText: "Auf B2-Niveau reicht es nicht, einzelne Sätze korrekt zu bilden. Man muss Gedanken verbinden, Beispiele geben und die eigene Position verständlich machen. Flüssigkeit entsteht, wenn man bekannte Strukturen in neuen Situationen wiederverwendet.",
+    questions: [
+      "Was reicht auf B2-Niveau nicht mehr?",
+      "Wie entsteht Flüssigkeit laut Text?",
+      "Welche Struktur möchtest du öfter wiederverwenden?",
+    ],
+    phrases: ["zusammenfassend lässt sich sagen", "ein Beispiel dafür ist", "im Gegensatz dazu", "für mich persönlich"],
+    grammarFocus: "Textkohärenz: spojovací výrazy na začátku věty.",
+    outputTask: "Shrň text ve 3 větách a přidej vlastní názor ve 5 větách.",
+    transferTask: "Použij čtyři spojovací výrazy v novém tématu.",
+  },
 ];
 let lastNetflixOpenAt = 0;
 let lastNetflixUrl = "";
@@ -275,6 +444,49 @@ const getUsageDb = () => {
         role TEXT NOT NULL,
         text TEXT NOT NULL,
         created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS agatha_b2_lessons (
+        lesson_id TEXT PRIMARY KEY,
+        day_key TEXT NOT NULL UNIQUE,
+        day_index INTEGER NOT NULL,
+        week_number INTEGER NOT NULL,
+        theme TEXT NOT NULL,
+        target TEXT NOT NULL,
+        input_text TEXT NOT NULL,
+        questions_json TEXT NOT NULL,
+        phrases_json TEXT NOT NULL,
+        grammar_focus TEXT NOT NULL,
+        output_task TEXT NOT NULL,
+        transfer_task TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS agatha_b2_attempts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        lesson_id TEXT NOT NULL,
+        step TEXT NOT NULL,
+        answer TEXT NOT NULL,
+        feedback TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS agatha_b2_errors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        lesson_id TEXT NOT NULL,
+        category TEXT NOT NULL,
+        note TEXT NOT NULL,
+        source_step TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS agatha_b2_review_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        lesson_id TEXT NOT NULL,
+        prompt TEXT NOT NULL,
+        due_date TEXT NOT NULL,
+        source_step TEXT NOT NULL,
+        completed_at TEXT
       );
     `);
 
@@ -966,6 +1178,245 @@ const getAgathaState = () => ({
   catalog: getAgathaCatalogMeta(),
 });
 
+const dateKeyToUtcTime = (dateKey: string) => {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return Date.UTC(year || 1970, (month || 1) - 1, day || 1);
+};
+
+const addDaysToDateKey = (dateKey: string, days: number) => {
+  const date = new Date(dateKeyToUtcTime(dateKey));
+  date.setUTCDate(date.getUTCDate() + days);
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const getAgathaB2DayIndex = (dayKey = getAgathaDateKey()) => {
+  const diffDays = Math.floor((dateKeyToUtcTime(dayKey) - dateKeyToUtcTime(AGATHA_B2_COURSE_START)) / 86400000);
+  return Math.max(0, diffDays);
+};
+
+const getAgathaB2Template = (dayIndex: number) => {
+  const weekIndex = Math.floor(dayIndex / 7) % 8;
+  const dayOfWeek = dayIndex % 7;
+  const preferred = AGATHA_B2_LESSON_TEMPLATES.find(template => template.week === weekIndex + 1 && template.day === dayOfWeek + 1)
+    || AGATHA_B2_LESSON_TEMPLATES.find(template => template.week === weekIndex + 1)
+    || AGATHA_B2_LESSON_TEMPLATES[dayIndex % AGATHA_B2_LESSON_TEMPLATES.length];
+  return {
+    ...preferred,
+    week: weekIndex + 1,
+    day: dayOfWeek + 1,
+    theme: dayOfWeek === 0
+      ? preferred.theme
+      : `${AGATHA_B2_WEEK_THEMES[weekIndex]}: practice ${dayOfWeek + 1}`,
+  };
+};
+
+const ensureAgathaB2Lesson = (dayKey = getAgathaDateKey()) => {
+  const db = getUsageDb();
+  const existing = db.prepare(`
+    SELECT *
+    FROM agatha_b2_lessons
+    WHERE day_key = ?
+  `).get(dayKey) as any;
+  if (existing) return existing;
+
+  const dayIndex = getAgathaB2DayIndex(dayKey);
+  const template = getAgathaB2Template(dayIndex);
+  const lessonId = `b2-${dayKey}`;
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO agatha_b2_lessons (
+      lesson_id, day_key, day_index, week_number, theme, target, input_text,
+      questions_json, phrases_json, grammar_focus, output_task, transfer_task, created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    lessonId,
+    dayKey,
+    dayIndex,
+    template.week,
+    template.theme,
+    template.target,
+    template.inputText,
+    JSON.stringify(template.questions),
+    JSON.stringify(template.phrases),
+    template.grammarFocus,
+    template.outputTask,
+    template.transferTask,
+    now
+  );
+
+  return db.prepare("SELECT * FROM agatha_b2_lessons WHERE lesson_id = ?").get(lessonId) as any;
+};
+
+const parseJsonList = (value: unknown) => {
+  try {
+    const parsed = JSON.parse(String(value || "[]"));
+    return Array.isArray(parsed) ? parsed.map(item => String(item)) : [];
+  } catch {
+    return [];
+  }
+};
+
+const agathaB2LessonPayload = (row: any) => ({
+  id: row.lesson_id,
+  dayKey: row.day_key,
+  dayIndex: Number(row.day_index || 0),
+  weekNumber: Number(row.week_number || 1),
+  theme: row.theme,
+  target: row.target,
+  inputText: row.input_text,
+  questions: parseJsonList(row.questions_json),
+  phrases: parseJsonList(row.phrases_json),
+  grammarFocus: row.grammar_focus,
+  outputTask: row.output_task,
+  transferTask: row.transfer_task,
+  createdAt: row.created_at,
+});
+
+const detectAgathaB2Error = (answer: string, step: string) => {
+  const clean = answer.trim();
+  const lower = clean.toLowerCase();
+  if (clean.length < 40) {
+    return {
+      category: "production",
+      note: "Odpověď je zatím krátká. Na B2 míř na celé věty s důvodem nebo příkladem.",
+    };
+  }
+  if (/\bweil\s+\w+\s+(bin|bist|ist|sind|seid|war|waren|habe|hat|haben|kann|können|muss|müssen)\b/i.test(clean)) {
+    return {
+      category: "word_order",
+      note: "Zkontroluj slovosled ve větě s weil/dass/obwohl: určité sloveso má být na konci.",
+    };
+  }
+  if (/\bich bin (interessiert|interessiere)\b/i.test(clean)) {
+    return {
+      category: "preposition",
+      note: "Pozor na vazbu: sich interessieren für + Akkusativ nebo an etwas interessiert sein.",
+    };
+  }
+  if (!/[.!?]$/.test(clean)) {
+    return {
+      category: "style",
+      note: "Ukonči myšlenku jasnou interpunkcí; u delší B2 odpovědi to pomáhá čitelnosti.",
+    };
+  }
+  return {
+    category: step === "output" ? "cohesion" : "activation",
+    note: "Dobrá pracovní odpověď. Při opakování přidej spojku, příklad a přesnější sloveso.",
+  };
+};
+
+const buildAgathaB2Feedback = (answer: string, step: string, lesson: any) => {
+  const wordCount = answer.trim().split(/\s+/).filter(Boolean).length;
+  const phraseHits = parseJsonList(lesson.phrases_json).filter(phrase =>
+    answer.toLowerCase().includes(phrase.toLowerCase())
+  );
+  const next = step === "retrieval"
+    ? "Teď přejdi k cílovým frázím a použij je ve vlastních větách."
+    : step === "activation"
+      ? "Teď napiš delší výstup a spoj argumenty do souvislého textu."
+      : "Zítra se k tomu vrátíme přes review frontu.";
+
+  if (wordCount < 8) {
+    return `Je to příliš krátké pro B2 trénink. Přidej aspoň dvě celé věty, důvod a konkrétní příklad. ${next}`;
+  }
+
+  const phraseNote = phraseHits.length
+    ? `Použil jste ${phraseHits.length} cílové fráze: ${phraseHits.join(", ")}.`
+    : "Zkus příště vědomě zapojit aspoň jednu cílovou frázi z lekce.";
+  return `Uloženo. ${phraseNote} ${next}`;
+};
+
+const createAgathaB2ReviewItems = (lessonId: string, step: string, answer: string, dayKey = getAgathaDateKey()) => {
+  const db = getUsageDb();
+  const cleanAnswer = answer.trim().replace(/\s+/g, " ");
+  const preview = cleanAnswer.length > 90 ? `${cleanAnswer.slice(0, 90)}...` : cleanAnswer;
+  const insert = db.prepare(`
+    INSERT INTO agatha_b2_review_items (lesson_id, prompt, due_date, source_step, completed_at)
+    VALUES (?, ?, ?, ?, NULL)
+  `);
+  for (const days of [1, 3, 7]) {
+    insert.run(
+      lessonId,
+      `Retell and improve this ${step} answer: ${preview}`,
+      addDaysToDateKey(dayKey, days),
+      step
+    );
+  }
+};
+
+const getAgathaB2State = () => {
+  const db = getUsageDb();
+  const todayKey = getAgathaDateKey();
+  const lesson = ensureAgathaB2Lesson(todayKey);
+  const attempts = (db.prepare(`
+    SELECT id, lesson_id, step, answer, feedback, created_at
+    FROM agatha_b2_attempts
+    WHERE lesson_id = ?
+    ORDER BY id ASC
+  `).all(lesson.lesson_id) as any[]).map(row => ({
+    id: Number(row.id),
+    lessonId: row.lesson_id,
+    step: row.step,
+    answer: row.answer,
+    feedback: row.feedback,
+    createdAt: row.created_at,
+  }));
+  const dueReview = (db.prepare(`
+    SELECT id, lesson_id, prompt, due_date, source_step, completed_at
+    FROM agatha_b2_review_items
+    WHERE completed_at IS NULL AND due_date <= ?
+    ORDER BY due_date ASC, id ASC
+    LIMIT 12
+  `).all(todayKey) as any[]).map(row => ({
+    id: Number(row.id),
+    lessonId: row.lesson_id,
+    prompt: row.prompt,
+    dueDate: row.due_date,
+    sourceStep: row.source_step,
+    completedAt: row.completed_at,
+  }));
+  const recentErrors = (db.prepare(`
+    SELECT id, lesson_id, category, note, source_step, created_at
+    FROM agatha_b2_errors
+    ORDER BY id DESC
+    LIMIT 8
+  `).all() as any[]).map(row => ({
+    id: Number(row.id),
+    lessonId: row.lesson_id,
+    category: row.category,
+    note: row.note,
+    sourceStep: row.source_step,
+    createdAt: row.created_at,
+  }));
+  const progress = db.prepare(`
+    SELECT
+      (SELECT COUNT(*) FROM agatha_b2_lessons) AS lessonsStarted,
+      (SELECT COUNT(*) FROM agatha_b2_attempts) AS attempts,
+      (SELECT COUNT(*) FROM agatha_b2_review_items WHERE completed_at IS NOT NULL) AS reviewsDone,
+      (SELECT COUNT(*) FROM agatha_b2_review_items WHERE completed_at IS NULL AND due_date <= ?) AS reviewsDue
+  `).get(todayKey) as any;
+
+  return {
+    lesson: agathaB2LessonPayload(lesson),
+    attempts,
+    dueReview,
+    recentErrors,
+    progress: {
+      lessonsStarted: Number(progress?.lessonsStarted || 0),
+      attempts: Number(progress?.attempts || 0),
+      reviewsDone: Number(progress?.reviewsDone || 0),
+      reviewsDue: Number(progress?.reviewsDue || 0),
+      courseWeek: Number(lesson.week_number || 1),
+      courseDay: (Number(lesson.day_index || 0) % 7) + 1,
+      weekThemes: AGATHA_B2_WEEK_THEMES,
+    },
+  };
+};
+
 const normalizeAgathaAnswer = (value: unknown) =>
   String(value || "")
     .trim()
@@ -1653,6 +2104,76 @@ app.post("/api/aunt-agatha/import-verbs", async (req, res) => {
   try {
     const result = await importAgathaVerbCatalog({ force: Boolean(req.body?.force) });
     res.json({ success: true, ...result, state: getAgathaState() });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get("/api/aunt-agatha/b2/today", (req, res) => {
+  try {
+    res.json({ success: true, ...getAgathaB2State() });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post("/api/aunt-agatha/b2/attempt", (req, res) => {
+  try {
+    const lessonId = String(req.body?.lessonId || "").trim();
+    const step = String(req.body?.step || "").trim();
+    const answer = String(req.body?.answer || "").trim();
+    if (!lessonId) return res.status(400).json({ success: false, error: "Chybí lekce." });
+    if (!["retrieval", "activation", "output"].includes(step)) {
+      return res.status(400).json({ success: false, error: "Neznámý krok lekce." });
+    }
+    if (!answer) return res.status(400).json({ success: false, error: "Odpověď musí být napsaná." });
+
+    const db = getUsageDb();
+    const lesson = db.prepare("SELECT * FROM agatha_b2_lessons WHERE lesson_id = ?").get(lessonId) as any;
+    if (!lesson) return res.status(404).json({ success: false, error: "Lekce nebyla nalezena." });
+
+    const feedback = buildAgathaB2Feedback(answer, step, lesson);
+    const createdAt = new Date().toISOString();
+    const result = db.prepare(`
+      INSERT INTO agatha_b2_attempts (lesson_id, step, answer, feedback, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(lessonId, step, answer, feedback, createdAt) as any;
+    const errorItem = detectAgathaB2Error(answer, step);
+    db.prepare(`
+      INSERT INTO agatha_b2_errors (lesson_id, category, note, source_step, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(lessonId, errorItem.category, errorItem.note, step, createdAt);
+    createAgathaB2ReviewItems(lessonId, step, answer, lesson.day_key);
+
+    res.json({
+      success: true,
+      attempt: {
+        id: Number(result?.lastInsertRowid || 0),
+        lessonId,
+        step,
+        answer,
+        feedback,
+        createdAt,
+      },
+      errorItem,
+      ...getAgathaB2State(),
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post("/api/aunt-agatha/b2/review/:id", (req, res) => {
+  try {
+    const reviewId = Number(req.params.id);
+    if (!Number.isFinite(reviewId)) return res.status(400).json({ success: false, error: "Neplatné review ID." });
+    const db = getUsageDb();
+    db.prepare(`
+      UPDATE agatha_b2_review_items
+      SET completed_at = ?
+      WHERE id = ?
+    `).run(new Date().toISOString(), reviewId);
+    res.json({ success: true, ...getAgathaB2State() });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
